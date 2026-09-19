@@ -1,0 +1,333 @@
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,300;1,6..72,400&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --color-on-surface-variant: #454743;
+  --color-tertiary-fixed-dim: #e5bfa1;
+  --color-inverse-surface: #2f3130;
+  --color-on-secondary: #ffffff;
+  --color-on-secondary-container: #576677;
+  --color-inverse-primary: #c8c6c4;
+  --color-on-primary-fixed: #1c1c1b;
+  --color-tertiary: #000000;
+  --color-outline: #767872;
+  --color-surface-dim: #dadad9;
+  --color-on-surface: #1a1c1c;
+  --color-secondary-container: #d4e4f9;
+  --color-secondary-fixed-dim: #b8c8dc;
+  --color-on-error: #ffffff;
+  --color-surface: #f9f9f8;
+  --color-surface-container-lowest: #ffffff;
+  --color-error: #ba1a1a;
+  --color-primary-fixed: #e5e2e0;
+  --color-on-primary-fixed-variant: #474745;
+  --color-on-tertiary-fixed: #2b1704;
+  --color-primary-container: #1c1c1b;
+  --color-error-container: #ffdad6;
+  --color-primary-fixed-dim: #c8c6c4;
+  --color-primary: #000000;
+  --color-on-secondary-fixed-variant: #394859;
+  --color-inverse-on-surface: #f1f1f0;
+  --color-on-tertiary-fixed-variant: #5c412a;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #2b1704;
+  --color-on-primary: #ffffff;
+  --color-tertiary-fixed: #ffdcc1;
+  --color-surface-bright: #f9f9f8;
+  --color-surface-container-high: #e8e8e7;
+  --color-surface-tint: #5f5e5d;
+  --color-on-secondary-fixed: #0d1d2c;
+  --color-on-tertiary-container: #9e7d63;
+  --color-background: #f9f9f8;
+  --color-on-error-container: #93000a;
+  --color-on-primary-container: #858382;
+  --color-surface-variant: #e2e2e2;
+  --color-surface-container-low: #f3f4f3;
+  --color-secondary: #516071;
+  --color-on-background: #1a1c1c;
+  --color-secondary-fixed: #d4e4f9;
+  --color-surface-container-highest: #e2e2e2;
+  --color-surface-container: #eeeeed;
+  --color-outline-variant: #c6c7c0;
+
+  --spacing-space-xs: 0.25rem;
+  --spacing-space-sm: 0.5rem;
+  --spacing-space-md: 1rem;
+  --spacing-space-lg: 1.5rem;
+  --spacing-space-xl: 2.5rem;
+  --spacing-gutter: 1.5rem;
+  --spacing-margin: 2rem;
+
+  --font-display: "Newsreader", serif;
+  --font-display-mobile: "Newsreader", serif;
+  --font-headline-lg: "Newsreader", serif;
+  --font-headline-lg-mobile: "Newsreader", serif;
+  --font-headline-md: "Newsreader", serif;
+  --font-headline-sm: "Geist", sans-serif;
+  --font-body-lg: "Geist", sans-serif;
+  --font-body-md: "Geist", sans-serif;
+  --font-body-sm: "Geist", sans-serif;
+  --font-label-md: "Geist", sans-serif;
+  --font-label-sm: "Geist", sans-serif;
+}
+
+:root {
+  --surface: #f9f9f8;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f3f4f3;
+  --surface-container: #eeeeed;
+  --surface-container-high: #e8e8e7;
+  --surface-container-highest: #e2e2e2;
+  --surface-variant: #e2e2e2;
+
+  --on-surface: #1a1c1c;
+  --on-surface-variant: #454743;
+  --secondary: #516071;
+  --outline: #767872;
+  --outline-variant: #c6c7c0;
+
+  --primary: #000000;
+  --primary-container: #1c1c1b;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--on-surface);
+  font-family: "Geist", sans-serif;
+}
+
+/* Stitch colors */
+
+.bg-surface {
+  background-color: var(--surface);
+}
+
+.bg-surface-container-lowest {
+  background-color: var(--surface-container-lowest);
+}
+
+.bg-surface-container-low {
+  background-color: var(--surface-container-low);
+}
+
+.bg-surface-container {
+  background-color: var(--surface-container);
+}
+
+.bg-primary {
+  background-color: var(--primary);
+}
+
+.bg-outline {
+  background-color: var(--outline);
+}
+
+.text-on-surface {
+  color: var(--on-surface);
+}
+
+.text-on-surface-variant {
+  color: var(--on-surface-variant);
+}
+
+.text-secondary {
+  color: var(--secondary);
+}
+
+.text-outline-variant {
+  color: var(--outline-variant);
+}
+
+.border-outline-variant {
+  border-color: var(--outline-variant);
+}
+
+.border-primary {
+  border-color: var(--primary);
+}
+
+.border-outline {
+  border-color: var(--outline);
+}
+
+/* Stitch typography */
+
+.font-display,
+.font-display-mobile,
+.font-headline-md,
+.font-headline-lg,
+.font-headline-lg-mobile {
+  font-family: "Newsreader", serif;
+}
+
+.font-headline-sm,
+.font-body-lg,
+.font-body-md,
+.font-body-sm,
+.font-label-sm,
+.font-label-md {
+  font-family: "Geist", sans-serif;
+}
+
+.text-display {
+  font-size: 48px;
+  line-height: 56px;
+  letter-spacing: -0.02em;
+  font-weight: 400;
+}
+
+.text-headline-lg {
+  font-size: 32px;
+  line-height: 40px;
+  letter-spacing: -0.015em;
+  font-weight: 400;
+}
+
+.text-headline-md {
+  font-size: 24px;
+  line-height: 32px;
+  letter-spacing: -0.01em;
+  font-weight: 400;
+}
+
+.text-headline-sm {
+  font-size: 18px;
+  line-height: 26px;
+  letter-spacing: -0.005em;
+  font-weight: 500;
+}
+
+.text-body-lg {
+  font-size: 16px;
+  line-height: 26px;
+}
+
+.text-body-md {
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.text-body-sm {
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.text-label-md {
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.04em;
+  font-weight: 500;
+}
+
+.text-label-sm {
+  font-size: 11px;
+  line-height: 14px;
+  letter-spacing: 0.06em;
+  font-weight: 500;
+}
+
+/* Stitch spacing */
+
+.p-space-lg {
+  padding: 1.5rem;
+}
+
+.p-space-xl {
+  padding: 2.5rem;
+}
+
+.px-gutter {
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+.py-space-sm {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.py-space-md {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+.py-space-lg {
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+}
+
+.py-space-xl {
+  padding-top: 2.5rem;
+  padding-bottom: 2.5rem;
+}
+
+.px-space-lg {
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+.pt-space-sm {
+  padding-top: 0.5rem;
+}
+
+.pt-space-md {
+  padding-top: 1rem;
+}
+
+.pb-space-xs {
+  padding-bottom: 0.25rem;
+}
+
+.pb-space-sm {
+  padding-bottom: 0.5rem;
+}
+
+.mt-space-lg {
+  margin-top: 1.5rem;
+}
+
+.mb-space-md {
+  margin-bottom: 1rem;
+}
+
+.mb-space-xl {
+  margin-bottom: 2.5rem;
+}
+
+/* Material Symbols */
+
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings:
+    "FILL" 0,
+    "wght" 400,
+    "GRAD" 0,
+    "opsz" 24;
+}
+
+@media (max-width: 640px) {
+  .text-display {
+    font-size: 36px;
+    line-height: 44px;
+    letter-spacing: -0.015em;
+  }
+}

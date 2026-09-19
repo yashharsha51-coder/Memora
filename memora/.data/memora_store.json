@@ -1,0 +1,278 @@
+{
+  "files": [
+    {
+      "id": "file_1789760384255_0uufy",
+      "filename": "Apple_Care_Extended_Warranty.pdf",
+      "storage_path": "uploads/1789760384252_Apple_Care_Extended_Warranty.pdf",
+      "mime_type": "application/pdf",
+      "size": 106,
+      "created_at": "2026-09-18T19:39:44.256Z"
+    },
+    {
+      "id": "file-1",
+      "filename": "Laptop Invoice.pdf",
+      "storage_path": "files/laptop-invoice.pdf",
+      "mime_type": "application/pdf",
+      "size": 142850,
+      "created_at": "2026-02-12T10:30:00Z"
+    },
+    {
+      "id": "file-2",
+      "filename": "Internship_Agreement_Stripe.pdf",
+      "storage_path": "files/internship.pdf",
+      "mime_type": "application/pdf",
+      "size": 320140,
+      "created_at": "2026-03-04T14:15:00Z"
+    },
+    {
+      "id": "file-3",
+      "filename": "Lease_Agreement_Indiranagar.pdf",
+      "storage_path": "files/lease.pdf",
+      "mime_type": "application/pdf",
+      "size": 512900,
+      "created_at": "2026-01-15T09:00:00Z"
+    },
+    {
+      "id": "file-4",
+      "filename": "AI175_BLR_SFO_Ticket.pdf",
+      "storage_path": "files/ticket.pdf",
+      "mime_type": "application/pdf",
+      "size": 89200,
+      "created_at": "2026-04-18T16:45:00Z"
+    }
+  ],
+  "memories": [
+    {
+      "id": "mem_1789760384263_sys05",
+      "title": "Apple Care Extended Warranty",
+      "type": "Document",
+      "summary": "Archived personal record: Apple_Care_Extended_Warranty.pdf. Content extracted and safely stored in your vault.",
+      "date": "2026-09-18",
+      "amount": null,
+      "currency": null,
+      "source_file_id": "file_1789760384255_0uufy",
+      "created_at": "2026-09-18T19:39:44.263Z",
+      "tags": [
+        "Archive",
+        "Document"
+      ]
+    },
+    {
+      "id": "mem-1",
+      "title": "Laptop Purchase",
+      "type": "Purchase",
+      "summary": "Purchased from Croma with AppleCare+ 3-year extended protection protocol. Primary coverage spans 36 calendar months from delivery confirmation.",
+      "source_file_id": "file-1",
+      "date": "February 12, 2026",
+      "amount": 84990,
+      "currency": "INR",
+      "created_at": "2026-02-12T10:30:00Z",
+      "tags": [
+        "Hardware",
+        "Electronics"
+      ],
+      "important_dates": [
+        {
+          "id": "date-1",
+          "memory_id": "mem-1",
+          "label": "Laptop warranty",
+          "date": "2027-02-12",
+          "sourceContext": "Hardware · Croma invoice",
+          "relativeDays": 28,
+          "relativeFormatted": "28 days"
+        }
+      ]
+    },
+    {
+      "id": "mem-2",
+      "title": "Summer Internship Agreement",
+      "type": "Employment",
+      "summary": "Stripe Inc · Fixed 3-month stipend & IP assignment clause · Direct deposit documentation finalized",
+      "source_file_id": "file-2",
+      "date": "March 04, 2026",
+      "amount": null,
+      "currency": null,
+      "created_at": "2026-03-04T14:15:00Z",
+      "tags": [
+        "Career",
+        "Legal"
+      ],
+      "important_dates": [
+        {
+          "id": "date-intern-1",
+          "memory_id": "mem-2",
+          "label": "Internship start date",
+          "date": "2026-06-01",
+          "sourceContext": "Stripe · San Francisco HQ",
+          "relativeDays": 73,
+          "relativeFormatted": "2 months"
+        }
+      ]
+    },
+    {
+      "id": "mem-3",
+      "title": "Apartment Lease Agreement",
+      "type": "Housing",
+      "summary": "11-month term · Security deposit ₹60,000 · Landlord: S. Narayanan · Key handover verified",
+      "source_file_id": "file-3",
+      "date": "January 15, 2026",
+      "amount": 60000,
+      "currency": "INR",
+      "created_at": "2026-01-15T09:00:00Z",
+      "tags": [
+        "Residence",
+        "Contracts"
+      ],
+      "important_dates": [
+        {
+          "id": "date-2",
+          "memory_id": "mem-3",
+          "label": "Insurance renewal",
+          "date": "2026-11-01",
+          "sourceContext": "Policy #4092 · HDFC Ergo",
+          "relativeDays": 43,
+          "relativeFormatted": "43 days"
+        }
+      ]
+    },
+    {
+      "id": "mem-4",
+      "title": "Flight Confirmation — BLR to SFO",
+      "type": "Travel",
+      "summary": "Air India AI 175 · Seat 14A · Electronic boarding token issued · Departure terminal 2",
+      "source_file_id": "file-4",
+      "date": "April 18, 2026",
+      "amount": null,
+      "currency": null,
+      "created_at": "2026-04-18T16:45:00Z",
+      "tags": [
+        "Itinerary",
+        "International"
+      ],
+      "important_dates": [
+        {
+          "id": "date-3",
+          "memory_id": "mem-4",
+          "label": "Passport renewal",
+          "date": "2028-09-15",
+          "sourceContext": "Republic of India · Travel doc",
+          "relativeDays": 730,
+          "relativeFormatted": "2 years"
+        }
+      ]
+    }
+  ],
+  "important_dates": [
+    {
+      "id": "date-1",
+      "memory_id": "mem-1",
+      "label": "Laptop warranty",
+      "date": "2027-02-12",
+      "sourceContext": "Hardware · Croma invoice",
+      "relativeDays": 28,
+      "relativeFormatted": "28 days"
+    },
+    {
+      "id": "date-2",
+      "memory_id": "mem-3",
+      "label": "Insurance renewal",
+      "date": "2026-11-01",
+      "sourceContext": "Policy #4092 · HDFC Ergo",
+      "relativeDays": 43,
+      "relativeFormatted": "43 days"
+    },
+    {
+      "id": "date-3",
+      "memory_id": "mem-4",
+      "label": "Passport renewal",
+      "date": "2028-09-15",
+      "sourceContext": "Republic of India · Travel doc",
+      "relativeDays": 730,
+      "relativeFormatted": "2 years"
+    }
+  ],
+  "tags": [
+    {
+      "id": "t-1",
+      "memory_id": "mem-1",
+      "tag": "Hardware"
+    },
+    {
+      "id": "t-2",
+      "memory_id": "mem-1",
+      "tag": "Electronics"
+    },
+    {
+      "id": "t-3",
+      "memory_id": "mem-2",
+      "tag": "Career"
+    },
+    {
+      "id": "t-4",
+      "memory_id": "mem-2",
+      "tag": "Legal"
+    },
+    {
+      "id": "t-5",
+      "memory_id": "mem-3",
+      "tag": "Residence"
+    },
+    {
+      "id": "t-6",
+      "memory_id": "mem-3",
+      "tag": "Contracts"
+    },
+    {
+      "id": "t-7",
+      "memory_id": "mem-4",
+      "tag": "Itinerary"
+    },
+    {
+      "id": "t-8",
+      "memory_id": "mem-4",
+      "tag": "International"
+    },
+    {
+      "id": "tag_1789760384305_unbu",
+      "memory_id": "mem_1789760384263_sys05",
+      "tag": "Archive"
+    },
+    {
+      "id": "tag_1789760384305_net6",
+      "memory_id": "mem_1789760384263_sys05",
+      "tag": "Document"
+    }
+  ],
+  "entities": [
+    {
+      "id": "e-1",
+      "memory_id": "mem-1",
+      "entity_type": "organization",
+      "entity_value": "Croma"
+    },
+    {
+      "id": "e-2",
+      "memory_id": "mem-1",
+      "entity_type": "organization",
+      "entity_value": "Apple"
+    },
+    {
+      "id": "e-3",
+      "memory_id": "mem-2",
+      "entity_type": "organization",
+      "entity_value": "Stripe Inc"
+    },
+    {
+      "id": "e-4",
+      "memory_id": "mem-3",
+      "entity_type": "person",
+      "entity_value": "S. Narayanan"
+    },
+    {
+      "id": "e-5",
+      "memory_id": "mem-4",
+      "entity_type": "organization",
+      "entity_value": "Air India"
+    }
+  ]
+}
