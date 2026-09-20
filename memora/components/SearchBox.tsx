@@ -74,27 +74,27 @@ export const SearchBox: React.FC<SearchBoxProps> = ({
           SUGGESTIONS:
         </span>
         <button
-          onClick={() => handleSuggestionClick('Where is my laptop invoice?')}
+          onClick={() => handleSuggestionClick('Show my internship offer')}
           className="hover:text-on-surface transition-colors duration-150 text-left cursor-pointer"
           type="button"
         >
-          Where is my laptop invoice?
+          Show my internship offer
         </button>
         <span className="text-outline-variant">·</span>
         <button
-          onClick={() => handleSuggestionClick('What expires this month?')}
+          onClick={() => handleSuggestionClick('What documents are in my vault?')}
           className="hover:text-on-surface transition-colors duration-150 text-left cursor-pointer"
           type="button"
         >
-          What expires this month?
+          What documents are in my vault?
         </button>
         <span className="text-outline-variant">·</span>
         <button
-          onClick={() => handleSuggestionClick('Show everything related to my internship.')}
+          onClick={() => handleSuggestionClick('Show upcoming dates')}
           className="hover:text-on-surface transition-colors duration-150 text-left cursor-pointer"
           type="button"
         >
-          Show everything related to my internship.
+          Show upcoming dates
         </button>
       </div>
     </div>

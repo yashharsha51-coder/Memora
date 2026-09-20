@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { ImportantDate } from '@/types/memory';
+import { ArrowForwardIcon } from './Icons';
 
 interface RememberSoonProps {
   dates: ImportantDate[];
@@ -47,8 +48,8 @@ export const RememberSoon: React.FC<RememberSoonProps> = ({
                 <span className="font-label-sm text-label-sm bg-surface-container border border-outline-variant px-2 py-0.5 rounded text-on-surface">
                   {item.relativeFormatted || 'Upcoming'}
                 </span>
-                <span className="material-symbols-outlined text-secondary text-[16px]">
-                  arrow_forward
+                <span className="text-secondary">
+                  <ArrowForwardIcon className="w-4 h-4" />
                 </span>
               </div>
             </div>

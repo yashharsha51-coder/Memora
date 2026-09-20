@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Memory } from '@/types/memory';
+import { CloseIcon, ArrowNorthEastIcon, DocumentIcon } from './Icons';
 
 interface DocumentViewerModalProps {
   memory: Memory | null;
@@ -37,7 +38,7 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
             className="text-secondary hover:text-on-surface p-1 cursor-pointer"
             type="button"
           >
-            <span className="material-symbols-outlined text-[20px]">close</span>
+            <CloseIcon className="w-5 h-5" />
           </button>
         </div>
 
@@ -89,17 +90,37 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
 
           {memory.source_file && (
             <div className="pt-2">
-              <span className="font-label-sm text-label-sm text-secondary uppercase tracking-wide block mb-1">
-                Source Document
-              </span>
-              <div className="flex items-center justify-between bg-surface-container border border-outline-variant rounded px-3 py-2 text-body-sm">
-                <span className="text-on-surface font-medium truncate">
-                  {memory.source_file.filename}
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="font-label-sm text-label-sm text-secondary uppercase tracking-wide">
+                  Source Document
                 </span>
-                <span className="text-secondary text-label-sm">
-                  {Math.round(memory.source_file.size / 1024)} KB
-                </span>
+                <a
+                  href={`/api/files/${encodeURIComponent(memory.source_file.filename)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-secondary hover:text-on-surface hover:underline font-label-sm text-label-sm flex items-center space-x-1 cursor-pointer"
+                >
+                  <span>Open PDF in new tab</span>
+                  <ArrowNorthEastIcon className="w-3.5 h-3.5" />
+                </a>
               </div>
+              <a
+                href={`/api/files/${encodeURIComponent(memory.source_file.filename)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between bg-surface-container hover:bg-surface-container-high border border-outline-variant rounded px-3 py-2.5 text-body-sm transition-colors cursor-pointer group"
+              >
+                <div className="flex items-center space-x-2 truncate">
+                  <DocumentIcon className="w-4 h-4 text-secondary group-hover:text-on-surface" />
+                  <span className="text-on-surface font-medium truncate group-hover:underline">
+                    {memory.source_file.filename}
+                  </span>
+                </div>
+                <span className="text-secondary text-label-sm flex items-center space-x-1.5 flex-shrink-0 ml-3">
+                  <span>{Math.round(memory.source_file.size / 1024)} KB</span>
+                  <ArrowNorthEastIcon className="w-3.5 h-3.5" />
+                </span>
+              </a>
             </div>
           )}
         </div>

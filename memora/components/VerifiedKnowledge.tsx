@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { GroundedAnswer } from '@/types/memory';
+import { ArrowNorthEastIcon } from './Icons';
 
 interface VerifiedKnowledgeProps {
   answer: GroundedAnswer | null;
@@ -80,6 +81,58 @@ export const VerifiedKnowledge: React.FC<VerifiedKnowledgeProps> = ({
         <p className="font-body-md text-body-md text-on-surface-variant max-w-2xl leading-relaxed">
           {answer.summary}
         </p>
+
+        {answer.source?.absolutePath && (
+          <div className="mt-3 p-2.5 bg-surface-container-low border border-outline-variant rounded flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-label-sm font-label-sm">
+            <div className="flex items-center space-x-2 min-w-0">
+              <span className="text-secondary flex-shrink-0">📍 Disk Location:</span>
+              <span className="font-mono text-on-surface truncate" title={answer.source.absolutePath}>
+                {answer.source.absolutePath}
+              </span>
+            </div>
+            <div className="flex items-center space-x-2 flex-shrink-0">
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await fetch('/api/system/open-file', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ filePath: answer.source!.absolutePath, action: 'reveal' }),
+                    });
+                  } catch (e) {
+                    console.error('Failed to reveal file:', e);
+                  }
+                }}
+                className="px-2 py-1 bg-surface-container border border-outline-variant rounded text-on-surface hover:bg-surface-container-high transition-colors cursor-pointer"
+                title="Open containing folder in Windows File Explorer"
+              >
+                Reveal in Explorer 📂
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const res = await fetch('/api/system/open-file', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ filePath: answer.source!.absolutePath, action: 'open' }),
+                    });
+                    if (!res.ok) {
+                      onSourceClick?.(answer.source!.filename);
+                    }
+                  } catch {
+                    onSourceClick?.(answer.source!.filename);
+                  }
+                }}
+                className="px-2 py-1 bg-surface-container border border-outline-variant rounded text-on-surface hover:bg-surface-container-high transition-colors cursor-pointer"
+                title="Open document"
+              >
+                Open File ↗
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="mt-space-md pt-space-sm border-t border-outline-variant flex flex-wrap items-center justify-between gap-4 font-body-sm text-body-sm">
@@ -89,10 +142,10 @@ export const VerifiedKnowledge: React.FC<VerifiedKnowledgeProps> = ({
             <button
               type="button"
               onClick={() => onSourceClick?.(answer.source!.filename)}
-              className="text-on-surface hover:underline underline-offset-2 flex items-center space-x-1 font-medium cursor-pointer"
+              className="text-on-surface hover:underline underline-offset-2 flex items-center space-x-1.5 font-medium cursor-pointer"
             >
               <span>{answer.source.filename}</span>
-              <span className="material-symbols-outlined text-[14px]">arrow_outward</span>
+              <ArrowNorthEastIcon className="w-3.5 h-3.5 text-secondary" />
             </button>
           ) : (
             <span className="text-on-surface font-medium">Archived Document</span>

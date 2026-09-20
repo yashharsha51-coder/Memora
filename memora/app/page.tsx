@@ -13,152 +13,57 @@ import {
   VaultModal,
   KeybindingsModal,
   PreferencesModal,
+  DriveScannerModal,
 } from '@/components/Modals';
 import { DocumentViewerModal } from '@/components/DocumentViewerModal';
 import { GroundedAnswer, ImportantDate, Memory } from '@/types/memory';
 
-// Default Golden Demo Initial State mirroring Stitch design
-const INITIAL_VERIFIED_ANSWER: GroundedAnswer = {
-  headline: 'Your laptop warranty expires on February 12, 2027.',
-  summary:
-    'Purchased via Croma Electronics with an AppleCare+ 3-year extended protection protocol. The primary coverage window spans 36 calendar months from delivery confirmation.',
-  highlightedDate: 'February 12, 2027',
-  source: {
-    filename: 'Laptop Invoice.pdf',
-  },
-  relatedMemories: ['Warranty Card', 'Purchase Receipt'],
-  latencyMs: 12,
-  isFound: true,
-};
-
-const INITIAL_MEMORIES: Memory[] = [
-  {
-    id: 'mem-1',
-    title: 'Laptop Purchase',
-    type: 'Purchase',
-    summary:
-      '₹84,990 · Purchased from Croma · Warranty expires Feb 12, 2027 · Related: Warranty card, Service receipt',
-    date: 'February 12, 2026',
-    amount: 84990,
-    currency: 'INR',
-    source_file: {
-      id: 'file-1',
-      filename: 'Laptop Invoice.pdf',
-      storage_path: 'files/laptop-invoice.pdf',
-      mime_type: 'application/pdf',
-      size: 142850,
-      created_at: '2026-02-12T10:30:00Z',
-    },
-    tags: ['Hardware', 'Electronics'],
-    created_at: '2026-02-12T10:30:00Z',
-  },
-  {
-    id: 'mem-2',
-    title: 'Summer Internship Agreement',
-    type: 'Employment',
-    summary:
-      'Stripe Inc · Fixed 3-month stipend & IP assignment clause · Direct deposit documentation finalized',
-    date: 'March 04, 2026',
-    source_file: {
-      id: 'file-2',
-      filename: 'Internship_Agreement_Stripe.pdf',
-      storage_path: 'files/internship.pdf',
-      mime_type: 'application/pdf',
-      size: 320140,
-      created_at: '2026-03-04T14:15:00Z',
-    },
-    tags: ['Career', 'Legal'],
-    created_at: '2026-03-04T14:15:00Z',
-  },
-  {
-    id: 'mem-3',
-    title: 'Apartment Lease Agreement',
-    type: 'Housing',
-    summary:
-      '11-month term · Security deposit ₹60,000 · Landlord: S. Narayanan · Key handover verified',
-    date: 'January 15, 2026',
-    amount: 60000,
-    currency: 'INR',
-    source_file: {
-      id: 'file-3',
-      filename: 'Lease_Agreement_Indiranagar.pdf',
-      storage_path: 'files/lease.pdf',
-      mime_type: 'application/pdf',
-      size: 512900,
-      created_at: '2026-01-15T09:00:00Z',
-    },
-    tags: ['Residence', 'Contracts'],
-    created_at: '2026-01-15T09:00:00Z',
-  },
-  {
-    id: 'mem-4',
-    title: 'Flight Confirmation — BLR to SFO',
-    type: 'Travel',
-    summary:
-      'Air India AI 175 · Seat 14A · Electronic boarding token issued · Departure terminal 2',
-    date: 'April 18, 2026',
-    source_file: {
-      id: 'file-4',
-      filename: 'AI175_BLR_SFO_Ticket.pdf',
-      storage_path: 'files/ticket.pdf',
-      mime_type: 'application/pdf',
-      size: 89200,
-      created_at: '2026-04-18T16:45:00Z',
-    },
-    tags: ['Itinerary', 'International'],
-    created_at: '2026-04-18T16:45:00Z',
-  },
-];
-
-const INITIAL_DATES: ImportantDate[] = [
-  {
-    id: 'date-1',
-    memory_id: 'mem-1',
-    label: 'Laptop warranty',
-    date: '2027-02-12',
-    sourceContext: 'Hardware · Croma invoice',
-    relativeDays: 28,
-    relativeFormatted: '28 days',
-  },
-  {
-    id: 'date-2',
-    memory_id: 'mem-3',
-    label: 'Insurance renewal',
-    date: '2026-11-01',
-    sourceContext: 'Policy #4092 · HDFC Ergo',
-    relativeDays: 43,
-    relativeFormatted: '43 days',
-  },
-  {
-    id: 'date-3',
-    memory_id: 'mem-4',
-    label: 'Passport renewal',
-    date: '2028-09-15',
-    sourceContext: 'Republic of India · Travel doc',
-    relativeDays: 730,
-    relativeFormatted: '2 years',
-  },
-];
+const INITIAL_MEMORIES: Memory[] = [];
+const INITIAL_DATES: ImportantDate[] = [];
 
 export default function Home() {
   const [currentTab, setCurrentTab] = useState<'memory' | 'timeline' | 'dont_forget'>('memory');
-  const [searchQuery, setSearchQuery] = useState('When does my laptop warranty expire?');
-  const [answer, setAnswer] = useState<GroundedAnswer | null>(INITIAL_VERIFIED_ANSWER);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [answer, setAnswer] = useState<GroundedAnswer | null>(null);
   const [isSearching, setIsSearching] = useState(false);
 
   const [memories, setMemories] = useState<Memory[]>(INITIAL_MEMORIES);
   const [dates, setDates] = useState<ImportantDate[]>(INITIAL_DATES);
 
-  const [vaultName, setVaultName] = useState("Julian's Vault");
+  const [vaultName, setVaultName] = useState('Personal Vault');
   const [selectedMemory, setSelectedMemory] = useState<Memory | null>(null);
 
   // Modals state
   const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
   const [isKeybindingsModalOpen, setIsKeybindingsModalOpen] = useState(false);
   const [isPreferencesModalOpen, setIsPreferencesModalOpen] = useState(false);
+  const [isDriveScannerModalOpen, setIsDriveScannerModalOpen] = useState(false);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const uploadZoneRef = useRef<HTMLDivElement>(null);
+
+  const refreshVault = async () => {
+    try {
+      const [memRes, dateRes] = await Promise.all([
+        fetch('/api/memories'),
+        fetch('/api/dates'),
+      ]);
+
+      if (memRes.ok) {
+        const memData = await memRes.json();
+        if (Array.isArray(memData.memories)) {
+          setMemories(memData.memories);
+        }
+      }
+
+      if (dateRes.ok) {
+        const dateData = await dateRes.json();
+        if (Array.isArray(dateData.dates)) {
+          setDates(dateData.dates);
+        }
+      }
+    } catch {}
+  };
 
   // Fetch initial data from backend API
   useEffect(() => {
@@ -298,7 +203,9 @@ export default function Home() {
         onTabChange={setCurrentTab}
         onAddMemoryClick={handleAddMemoryClick}
         onSearchFocus={handleFocusSearch}
+        onScanDrivesClick={() => setIsDriveScannerModalOpen(true)}
         vaultName={vaultName}
+        onVaultClick={() => setIsPreferencesModalOpen(true)}
       />
 
       {/* Main Canvas */}
@@ -340,7 +247,7 @@ export default function Home() {
                 onTagClick={handleTagClick}
                 onSelectMemory={setSelectedMemory}
                 onViewAllClick={() => setCurrentTab('timeline')}
-                totalCount={Math.max(memories.length, 318)}
+                totalCount={memories.length}
               />
             )}
 
@@ -384,6 +291,12 @@ export default function Home() {
         onClose={() => setIsPreferencesModalOpen(false)}
         vaultName={vaultName}
         onVaultNameChange={setVaultName}
+      />
+
+      <DriveScannerModal
+        isOpen={isDriveScannerModalOpen}
+        onClose={() => setIsDriveScannerModalOpen(false)}
+        onScanComplete={refreshVault}
       />
     </div>
   );

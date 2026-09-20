@@ -7,7 +7,9 @@ interface HeaderProps {
   onTabChange: (tab: 'memory' | 'timeline' | 'dont_forget') => void;
   onAddMemoryClick: () => void;
   onSearchFocus: () => void;
+  onScanDrivesClick?: () => void;
   vaultName?: string;
+  onVaultClick?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -15,7 +17,9 @@ export const Header: React.FC<HeaderProps> = ({
   onTabChange,
   onAddMemoryClick,
   onSearchFocus,
+  onScanDrivesClick,
   vaultName = "Julian's Vault",
+  onVaultClick,
 }) => {
   return (
     <header className="w-full border-b border-outline-variant px-gutter py-space-sm flex justify-between items-center bg-surface sticky top-0 z-30">
@@ -71,6 +75,17 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Right-aligned action cluster */}
       <div className="flex items-center space-x-4">
+        {onScanDrivesClick && (
+          <button
+            onClick={onScanDrivesClick}
+            className="hidden sm:inline-flex items-center space-x-1 text-secondary hover:text-on-surface font-label-md text-label-md transition-colors duration-150 cursor-pointer"
+            type="button"
+            title="Scan C: & D: Drives for personal documents"
+          >
+            <span>Drives</span>
+            <span className="text-xs">⚡</span>
+          </button>
+        )}
         <button
           onClick={onSearchFocus}
           className="hidden md:inline-flex items-center text-secondary hover:text-on-surface font-label-md text-label-md transition-colors duration-150 cursor-pointer"
@@ -85,10 +100,15 @@ export const Header: React.FC<HeaderProps> = ({
         >
           + Add memory
         </button>
-        <div className="flex items-center space-x-2 pl-3 border-l border-outline-variant">
-          <span className="font-label-sm text-label-sm text-secondary">{vaultName}</span>
+        <button
+          type="button"
+          onClick={onVaultClick}
+          className="flex items-center space-x-2 pl-3 border-l border-outline-variant hover:opacity-80 transition-opacity cursor-pointer text-left"
+          title="Vault Settings"
+        >
+          <span className="font-label-sm text-label-sm text-secondary hover:text-on-surface">{vaultName}</span>
           <div className="w-2 h-2 rounded-full bg-outline-variant"></div>
-        </div>
+        </button>
       </div>
     </header>
   );

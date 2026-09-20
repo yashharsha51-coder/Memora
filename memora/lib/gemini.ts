@@ -42,7 +42,7 @@ export async function extractMemoryFromDocument(
     try {
       const base64Data = buffer.toString('base64');
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.6-flash',
         contents: [
           {
             role: 'user',
@@ -89,97 +89,44 @@ export async function extractMemoryFromDocument(
 
   // Deterministic local extraction fallback when GEMINI_API_KEY is not configured
   const lowerName = filename.toLowerCase();
-  if (lowerName.includes('invoice') || lowerName.includes('laptop') || lowerName.includes('macbook')) {
-    return {
-      type: 'Purchase',
-      title: 'MacBook Air Purchase',
-      summary: 'Laptop purchased from Croma with AppleCare+ 3-year extended warranty coverage.',
-      date: '2026-02-12',
-      amount: 84990,
-      currency: 'INR',
-      people: [],
-      organizations: ['Croma', 'Apple'],
-      important_dates: [
-        {
-          label: 'Laptop warranty',
-          date: '2027-02-12',
-        },
-      ],
-      tags: ['Hardware', 'Electronics', 'Warranty'],
-    };
-  } else if (lowerName.includes('lease') || lowerName.includes('rent') || lowerName.includes('apartment')) {
-    return {
-      type: 'Housing',
-      title: 'Apartment Lease Agreement',
-      summary: '11-month residential lease agreement. Security deposit ₹60,000 paid to S. Narayanan.',
-      date: '2026-01-15',
-      amount: 60000,
-      currency: 'INR',
-      people: ['S. Narayanan'],
-      organizations: [],
-      important_dates: [
-        {
-          label: 'Lease expiration',
-          date: '2026-12-15',
-        },
-      ],
-      tags: ['Residence', 'Contracts', 'Housing'],
-    };
-  } else if (lowerName.includes('intern') || lowerName.includes('offer') || lowerName.includes('employment')) {
-    return {
-      type: 'Employment',
-      title: 'Summer Internship Agreement',
-      summary: 'Stripe Inc 3-month engineering internship agreement with IP assignment and stipend.',
-      date: '2026-03-04',
-      amount: null,
-      currency: null,
-      people: [],
-      organizations: ['Stripe Inc'],
-      important_dates: [
-        {
-          label: 'Internship start date',
-          date: '2026-06-01',
-        },
-      ],
-      tags: ['Career', 'Legal', 'Internship'],
-    };
-  } else if (lowerName.includes('flight') || lowerName.includes('ticket') || lowerName.includes('travel')) {
-    return {
-      type: 'Travel',
-      title: 'Flight Confirmation — BLR to SFO',
-      summary: 'Air India AI 175 flight booking from Bangalore to San Francisco. Seat 14A.',
-      date: '2026-04-18',
-      amount: null,
-      currency: null,
-      people: [],
-      organizations: ['Air India'],
-      important_dates: [
-        {
-          label: 'Flight departure',
-          date: '2026-04-18',
-        },
-      ],
-      tags: ['Itinerary', 'International', 'Travel'],
-    };
-  }
-
-  // Generic fallback
   const cleanTitle = filename
     .replace(/\.[^/.]+$/, '')
     .replace(/[_-]/g, ' ')
     .replace(/\b\w/g, (l) => l.toUpperCase());
 
+  let inferredType: any = 'Document';
+  const tags: string[] = ['Archive'];
+
+  if (lowerName.includes('invoice') || lowerName.includes('receipt') || lowerName.includes('bill')) {
+    inferredType = 'Purchase';
+    tags.push('Finance', 'Purchase');
+  } else if (lowerName.includes('intern') || lowerName.includes('offer') || lowerName.includes('agreement') || lowerName.includes('employment') || lowerName.includes('contract')) {
+    inferredType = 'Employment';
+    tags.push('Career', 'Agreement');
+  } else if (lowerName.includes('lease') || lowerName.includes('rent') || lowerName.includes('housing')) {
+    inferredType = 'Housing';
+    tags.push('Housing', 'Residence');
+  } else if (lowerName.includes('ticket') || lowerName.includes('flight') || lowerName.includes('boarding') || lowerName.includes('travel')) {
+    inferredType = 'Travel';
+    tags.push('Travel', 'Itinerary');
+  } else if (lowerName.includes('warranty') || lowerName.includes('guarantee')) {
+    inferredType = 'Document';
+    tags.push('Warranty', 'Support');
+  } else {
+    tags.push('Document');
+  }
+
   return {
-    type: 'Document',
+    type: inferredType,
     title: cleanTitle,
-    summary: `Archived personal record: ${filename}. Content extracted and safely stored in your vault.`,
-    date: new Date().toISOString().split('T')[0],
+    summary: `Verified record archived from ${filename}. Extracted and indexed safely in your private personal vault.`,
+    date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
     amount: null,
     currency: null,
     people: [],
     organizations: [],
     important_dates: [],
-    tags: ['Archive', 'Document'],
+    tags,
   };
 }
 
@@ -229,7 +176,7 @@ export async function generateGroundedAnswer(
       );
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.6-flash',
         contents: [
           {
             role: 'user',
@@ -270,156 +217,125 @@ export async function generateGroundedAnswer(
     }
   }
 
-  // Local Grounded Matching Engine
+  // Local Grounded Matching Engine - searches actual vault memories only
   const q = query.toLowerCase().trim();
   const latencyMs = Math.max(Date.now() - startTime + 8, 12);
 
-  // Warranty inquiry
-  if (q.includes('warranty') || (q.includes('laptop') && (q.includes('expire') || q.includes('when')))) {
-    const laptopMem = memories.find((m) => m.title.toLowerCase().includes('laptop') || m.type.toLowerCase() === 'purchase');
+  if (!memories || memories.length === 0) {
     return {
-      headline: 'Your laptop warranty expires on February 12, 2027.',
-      summary: 'Purchased via Croma Electronics with an AppleCare+ 3-year extended protection protocol. The primary coverage window spans 36 calendar months from delivery confirmation.',
-      highlightedDate: 'February 12, 2027',
-      source: {
-        filename: laptopMem?.source_file?.filename || 'Laptop Invoice.pdf',
-      },
-      relatedMemories: ['Warranty Card', 'Purchase Receipt'],
+      headline: 'Vault is currently empty.',
+      summary: `MEMORA searched your personal documents for "${query}", but there are no verified documents archived in your vault yet. Upload a document to get started.`,
       latencyMs,
-      isFound: true,
+      isFound: false,
     };
   }
 
-  // Price inquiry
-  if (q.includes('how much') || q.includes('cost') || q.includes('price') || q.includes('pay')) {
-    let match: Memory | undefined;
-    if (q.includes('laptop') || q.includes('macbook') || q.includes('computer')) {
-      match = memories.find(
-        (m) =>
-          m.title.toLowerCase().includes('laptop') ||
-          m.title.toLowerCase().includes('macbook') ||
-          (m.tags && m.tags.some((t) => t.toLowerCase() === 'hardware'))
-      );
-      if (match) {
-        return {
-          headline: 'You paid ₹84,990 for your laptop.',
-          summary: 'Purchased via Croma Electronics on February 12, 2026 with AppleCare+ extended warranty protection.',
-          source: {
-            filename: match.source_file?.filename || 'Laptop Invoice.pdf',
-          },
-          relatedMemories: ['Purchase Receipt', 'Warranty Card'],
-          latencyMs,
-          isFound: true,
-        };
-      }
-    } else if (q.includes('lease') || q.includes('rent') || q.includes('deposit') || q.includes('apartment')) {
-      match = memories.find((m) => m.title.toLowerCase().includes('lease') || m.type.toLowerCase() === 'housing');
-      if (match) {
-        return {
-          headline: 'You paid ₹60,000 for your apartment security deposit.',
-          summary: '11-month lease term verified with landlord S. Narayanan. Key handover completed on January 15, 2026.',
-          source: {
-            filename: match.source_file?.filename || 'Lease_Agreement_Indiranagar.pdf',
-          },
-          relatedMemories: ['Rent Receipts', 'Move-in Checklist'],
-          latencyMs,
-          isFound: true,
-        };
+  // Tokenize query words (excluding common stop words)
+  const queryTokens = q
+    .split(/\s+/)
+    .map((t) => t.replace(/[^a-z0-9]/g, ''))
+    .filter((t) => t.length > 2 && !['what', 'where', 'when', 'which', 'whom', 'this', 'that', 'with', 'from', 'have', 'does', 'show', 'tell', 'find', 'about'].includes(t));
+
+  // 1. Match important dates if query mentions dates, expiry, or specific labels
+  for (const mem of memories) {
+    if (mem.important_dates && mem.important_dates.length > 0) {
+      for (const d of mem.important_dates) {
+        const labelLower = d.label.toLowerCase();
+        if (q.includes(labelLower) || (q.includes('expire') && labelLower.includes('expir')) || (q.includes('deadline') && labelLower.includes('due'))) {
+          return {
+            headline: `${d.label} is scheduled for ${d.date}.`,
+            summary: mem.summary || `Verified deadline recorded under ${mem.title}.`,
+            highlightedDate: d.date,
+            source: mem.source_file ? { filename: mem.source_file.filename } : { filename: mem.title },
+            relatedMemories: memories.filter((m) => m.id !== mem.id).slice(0, 2).map((m) => m.title),
+            latencyMs,
+            isFound: true,
+          };
+        }
       }
     }
+  }
 
-    match = memories.find(
-      (m) =>
-        m.amount &&
-        (q.includes(m.title.toLowerCase()) ||
-          (m.tags && m.tags.some((t) => q.includes(t.toLowerCase()))))
-    ) || memories.find((m) => m.amount) || memories[0];
+  // 2. Score memories against query tokens
+  let bestMem: Memory | null = null;
+  let bestScore = 0;
 
-    if (match && match.amount) {
-      const symbol = match.currency === 'INR' ? '₹' : match.currency === 'USD' ? '$' : '';
-      const formattedAmount = `${symbol}${match.amount.toLocaleString()}`;
+  for (const mem of memories) {
+    let score = 0;
+    const titleLower = mem.title.toLowerCase();
+    const summaryLower = (mem.summary || '').toLowerCase();
+    const typeLower = (mem.type || '').toLowerCase();
+    const tagsLower = (mem.tags || []).map((t) => t.toLowerCase());
+    const filenameLower = (mem.source_file?.filename || '').toLowerCase();
+
+    // Exact phrase match in title or summary
+    if (titleLower.includes(q)) score += 10;
+    if (summaryLower.includes(q)) score += 5;
+
+    // Token matches
+    for (const token of queryTokens) {
+      if (titleLower.includes(token)) score += 4;
+      if (tagsLower.some((t) => t.includes(token))) score += 3;
+      if (filenameLower.includes(token)) score += 3;
+      if (typeLower.includes(token)) score += 2;
+      if (summaryLower.includes(token)) score += 1;
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestMem = mem;
+    }
+  }
+
+  if (bestMem && bestScore >= 2) {
+    const isLocationQuery =
+      q.includes('where') ||
+      q.includes('find') ||
+      q.includes('location') ||
+      q.includes('path') ||
+      q.includes('saved') ||
+      q.includes('folder') ||
+      q.includes('drive');
+
+    const sourceObj = {
+      filename: bestMem.source_file?.filename || bestMem.title,
+      fileId: bestMem.source_file_id || undefined,
+      absolutePath: bestMem.absolute_path || bestMem.source_file?.absolute_path,
+      directory: bestMem.directory,
+    };
+
+    // Location query
+    if (isLocationQuery && bestMem.absolute_path) {
       return {
-        headline: `You paid ${formattedAmount} for your ${match.title.toLowerCase().replace('purchase', '').trim() || 'item'}.`,
-        summary: match.summary || `Verified payment transaction recorded on ${match.date}.`,
-        source: {
-          filename: match.source_file?.filename || 'Laptop Invoice.pdf',
-        },
-        relatedMemories: memories.filter((m) => m.id !== match.id).slice(0, 2).map((m) => m.title),
+        headline: `Found: ${bestMem.title}`,
+        summary: `Saved on your drive at ${bestMem.absolute_path}. ${bestMem.summary || ''}`,
+        source: sourceObj,
+        relatedMemories: memories.filter((m) => m.id !== bestMem.id).slice(0, 2).map((m) => m.title),
         latencyMs,
         isFound: true,
       };
     }
-  }
 
-  // Invoice / source document query
-  if (q.includes('where is') || q.includes('invoice') || q.includes('receipt')) {
-    const match = memories.find(
-      (m) =>
-        q.includes(m.title.toLowerCase()) ||
-        (m.source_file && q.includes(m.source_file.filename.toLowerCase())) ||
-        (m.tags && m.tags.some((t) => q.includes(t.toLowerCase()))) ||
-        q.includes('laptop')
-    ) || memories[0];
+    // Price query
+    if ((q.includes('cost') || q.includes('price') || q.includes('pay') || q.includes('amount') || q.includes('how much')) && bestMem.amount) {
+      const symbol = bestMem.currency === 'INR' ? '₹' : bestMem.currency === 'USD' ? '$' : '';
+      const formattedAmount = `${symbol}${bestMem.amount.toLocaleString()}`;
+      return {
+        headline: `Recorded amount is ${formattedAmount}.`,
+        summary: bestMem.summary || `Verified transaction recorded under ${bestMem.title}.`,
+        source: sourceObj,
+        relatedMemories: memories.filter((m) => m.id !== bestMem.id).slice(0, 2).map((m) => m.title),
+        latencyMs,
+        isFound: true,
+      };
+    }
 
     return {
-      headline: `Your invoice is archived as ${match.source_file?.filename || 'Laptop Invoice.pdf'}.`,
-      summary: `Stored under ${match.title} (${match.date || 'February 12, 2026'}). Extracted facts and verified coverage terms are available in your vault.`,
-      source: {
-        filename: match.source_file?.filename || 'Laptop Invoice.pdf',
-      },
-      relatedMemories: ['Purchase Receipt', 'Warranty Card'],
-      latencyMs,
-      isFound: true,
-    };
-  }
-
-  // Internship query
-  if (q.includes('intern') || q.includes('stripe') || q.includes('agreement') || q.includes('employment')) {
-    const internMem = memories.find((m) => m.title.toLowerCase().includes('internship') || m.type.toLowerCase() === 'employment');
-    return {
-      headline: 'Summer Internship Agreement with Stripe Inc.',
-      summary: 'Fixed 3-month stipend & IP assignment clause verified. Direct deposit documentation finalized. Start date June 01, 2026.',
-      highlightedDate: 'June 01, 2026',
-      source: {
-        filename: internMem?.source_file?.filename || 'Internship_Agreement_Stripe.pdf',
-      },
-      relatedMemories: ['Direct Deposit Form', 'NDA Agreement'],
-      latencyMs,
-      isFound: true,
-    };
-  }
-
-  // Expiration / what expires query
-  if (q.includes('expire') || q.includes('month') || q.includes('soon')) {
-    return {
-      headline: 'Laptop warranty is the nearest upcoming expiration.',
-      summary: 'Your hardware protection expires in 28 days (February 12, 2027), followed by your insurance renewal in 43 days.',
-      highlightedDate: 'February 12, 2027',
-      source: {
-        filename: 'Laptop Invoice.pdf',
-      },
-      relatedMemories: ['Insurance Policy #4092', 'Warranty Card'],
-      latencyMs,
-      isFound: true,
-    };
-  }
-
-  // If query matched any memory
-  const matchedMem = memories.find(
-    (m) =>
-      m.title.toLowerCase().includes(q) ||
-      m.summary?.toLowerCase().includes(q) ||
-      (m.tags && m.tags.some((t) => t.toLowerCase().includes(q)))
-  );
-
-  if (matchedMem) {
-    return {
-      headline: `${matchedMem.title} — Verified Record`,
-      summary: matchedMem.summary || `Verified record archived on ${matchedMem.date}.`,
-      source: {
-        filename: matchedMem.source_file?.filename || 'Archive Document',
-      },
-      relatedMemories: memories.filter((m) => m.id !== matchedMem.id).slice(0, 2).map((m) => m.title),
+      headline: bestMem.title,
+      summary: bestMem.summary || `Verified record in your vault under ${bestMem.type}.`,
+      highlightedDate: bestMem.date || undefined,
+      source: sourceObj,
+      relatedMemories: memories.filter((m) => m.id !== bestMem.id).slice(0, 2).map((m) => m.title),
       latencyMs,
       isFound: true,
     };
@@ -427,8 +343,8 @@ export async function generateGroundedAnswer(
 
   // Not found
   return {
-    headline: 'No verified memory found for this inquiry.',
-    summary: `MEMORA searched your accumulated personal vault for "${query}", but found no matching records. Try searching for laptop warranty, invoice, lease, or internship.`,
+    headline: 'No verified record found in your vault.',
+    summary: `MEMORA searched your personal documents for "${query}" but found no matching records. Try scanning your local drives or uploading the document.`,
     relatedMemories: memories.slice(0, 2).map((m) => m.title),
     latencyMs,
     isFound: false,

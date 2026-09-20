@@ -3,6 +3,7 @@ export interface SourceFile {
   user_id?: string | null;
   filename: string;
   storage_path: string;
+  absolute_path?: string;
   mime_type: string;
   size: number;
   created_at: string;
@@ -40,6 +41,8 @@ export interface Memory {
   summary?: string;
   source_file_id?: string | null;
   source_file?: SourceFile;
+  absolute_path?: string;
+  directory?: string;
   date?: string;
   amount?: number | null;
   currency?: string | null;
@@ -74,6 +77,8 @@ export interface GroundedAnswer {
     filename: string;
     fileId?: string;
     url?: string;
+    absolutePath?: string;
+    directory?: string;
   };
   relatedMemories?: string[];
   latencyMs: number;

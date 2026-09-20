@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Memory } from '@/types/memory';
+import { ArrowNorthEastIcon } from './Icons';
 
 interface MemoryCardProps {
   memory: Memory;
@@ -63,8 +64,28 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({
           className="text-secondary hover:text-on-surface flex items-center space-x-1 underline underline-offset-4 decoration-outline-variant cursor-pointer"
         >
           <span>{sourceLabel}</span>
-          <span className="material-symbols-outlined text-[13px]">north_east</span>
+          <ArrowNorthEastIcon className="w-3.5 h-3.5" />
         </button>
+
+        {memory.absolute_path && (
+          <>
+            <span className="text-outline-variant">·</span>
+            <span
+              onClick={(e) => {
+                e.stopPropagation();
+                fetch('/api/system/open-file', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ filePath: memory.absolute_path, action: 'reveal' }),
+                });
+              }}
+              className="text-secondary font-label-sm text-label-sm font-mono hover:text-on-surface hover:underline truncate max-w-xs cursor-pointer"
+              title={`Reveal in Explorer: ${memory.absolute_path}`}
+            >
+              📍 {memory.absolute_path}
+            </span>
+          </>
+        )}
 
         {memory.tags && memory.tags.length > 0 && (
           <>

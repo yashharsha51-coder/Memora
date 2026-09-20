@@ -21,7 +21,7 @@ export const RecentMemories: React.FC<RecentMemoriesProps> = ({
   onViewAllClick,
   totalCount,
 }) => {
-  const displayCount = totalCount !== undefined ? totalCount : Math.max(memories.length, 318);
+  const displayCount = totalCount !== undefined ? totalCount : memories.length;
 
   return (
     <section className="mb-space-xl">
