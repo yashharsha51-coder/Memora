@@ -1,7 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useRef } from 'react';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
 import { Memory, ImportantDate } from '@/types/memory';
+
+gsap.registerPlugin(useGSAP);
 
 interface TimelineViewProps {
   memories: Memory[];
@@ -14,6 +18,8 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
   dates,
   onSelectMemory,
 }) => {
+  const containerRef = useRef<HTMLElement>(null);
+
   // Combine memories and dates into a chronological timeline
   const events = [
     ...memories.map((m) => ({
@@ -41,9 +47,31 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     }),
   ].sort((a, b) => b.rawDate - a.rawDate);
 
+  useGSAP(
+    () => {
+      const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+
+      tl.from('.timeline-header', {
+        y: -10,
+        opacity: 0,
+        duration: 0.4,
+      }).from(
+        '.timeline-event-item',
+        {
+          x: -15,
+          opacity: 0,
+          stagger: 0.05,
+          duration: 0.5,
+        },
+        '-=0.2'
+      );
+    },
+    { dependencies: [events.length], scope: containerRef }
+  );
+
   return (
-    <section className="mb-space-xl animate-fadeIn">
-      <div className="flex items-baseline justify-between border-b border-outline-variant pb-space-xs mb-space-md">
+    <section ref={containerRef} className="mb-space-xl will-change-transform">
+      <div className="timeline-header flex items-baseline justify-between border-b border-outline-variant pb-space-xs mb-space-md">
         <h2 className="font-headline-sm text-headline-sm text-on-surface">Timeline</h2>
         <span className="font-label-sm text-label-sm text-secondary uppercase tracking-widest">
           Chronological Record
@@ -55,25 +83,25 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
           <div
             key={ev.id}
             onClick={() => ev.memory && onSelectMemory?.(ev.memory)}
-            className="relative group cursor-pointer"
+            className="timeline-event-item relative group cursor-pointer will-change-transform"
           >
             {/* Timeline Dot */}
             <div
-              className={`absolute -left-[31px] top-1 w-2.5 h-2.5 rounded-full border border-surface transition-transform duration-150 group-hover:scale-125 ${
+              className={`absolute -left-[31px] top-1 w-2.5 h-2.5 rounded-full border border-surface transition-transform duration-200 group-hover:scale-125 ${
                 ev.isDeadline ? 'bg-outline-variant ring-4 ring-surface' : 'bg-on-surface'
               }`}
             />
 
             <div className="flex flex-col md:flex-row md:items-baseline md:justify-between gap-1 mb-1">
               <div className="flex items-baseline space-x-3">
-                <h3 className="font-headline-sm text-headline-sm text-on-surface group-hover:underline underline-offset-4 decoration-outline-variant">
+                <h3 className="font-headline-sm text-headline-sm text-on-surface group-hover:underline underline-offset-4 decoration-outline-variant transition-colors">
                   {ev.title}
                 </h3>
                 <span className="text-secondary font-label-sm text-label-sm uppercase tracking-wide">
                   {ev.type}
                 </span>
               </div>
-              <time className="font-label-sm text-label-sm text-secondary">
+              <time className="font-label-sm text-label-sm text-secondary font-mono">
                 {ev.date}
               </time>
             </div>
@@ -89,3 +117,4 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     </section>
   );
 };
+

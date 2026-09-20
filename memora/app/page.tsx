@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
 import { Header } from '@/components/Header';
 import { SearchBox } from '@/components/SearchBox';
 import { VerifiedKnowledge } from '@/components/VerifiedKnowledge';
@@ -13,10 +15,13 @@ import {
   VaultModal,
   KeybindingsModal,
   PreferencesModal,
-  DriveScannerModal,
+  FolderSelectorModal,
 } from '@/components/Modals';
 import { DocumentViewerModal } from '@/components/DocumentViewerModal';
+import { DontForgetView } from '@/components/DontForgetView';
 import { GroundedAnswer, ImportantDate, Memory } from '@/types/memory';
+
+gsap.registerPlugin(useGSAP);
 
 const INITIAL_MEMORIES: Memory[] = [];
 const INITIAL_DATES: ImportantDate[] = [];
@@ -37,10 +42,27 @@ export default function Home() {
   const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
   const [isKeybindingsModalOpen, setIsKeybindingsModalOpen] = useState(false);
   const [isPreferencesModalOpen, setIsPreferencesModalOpen] = useState(false);
-  const [isDriveScannerModalOpen, setIsDriveScannerModalOpen] = useState(false);
+  const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
 
+  const pageContainerRef = useRef<HTMLDivElement>(null);
+  const mainContentRef = useRef<HTMLElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const uploadZoneRef = useRef<HTMLDivElement>(null);
+
+  // Tab change smooth transition
+  useGSAP(
+    () => {
+      if (mainContentRef.current) {
+        gsap.fromTo(
+          mainContentRef.current,
+          { opacity: 0, y: 12 },
+          { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' }
+        );
+      }
+    },
+    { dependencies: [currentTab], scope: pageContainerRef }
+  );
+
 
   const refreshVault = async () => {
     try {
@@ -100,8 +122,12 @@ export default function Home() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
-        searchInputRef.current?.focus();
-        searchInputRef.current?.select();
+        setCurrentTab('memory');
+        setTimeout(() => {
+          searchInputRef.current?.focus();
+          searchInputRef.current?.select();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 50);
       } else if (e.key === 'Escape') {
         setSelectedMemory(null);
         setIsVaultModalOpen(false);
@@ -145,9 +171,11 @@ export default function Home() {
       })
       .catch(() => {});
 
-    // Automatically search for the new memory to show verified extraction
-    setSearchQuery(newMemory.title);
-    handleSearch(newMemory.title);
+    // Automatically search for the new memory only if on the memory tab
+    if (currentTab === 'memory') {
+      setSearchQuery(newMemory.title);
+      handleSearch(newMemory.title);
+    }
   };
 
   // Click on related memory
@@ -171,10 +199,14 @@ export default function Home() {
 
   // Focus search input
   const handleFocusSearch = () => {
-    searchInputRef.current?.focus();
-    searchInputRef.current?.select();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setCurrentTab('memory');
+    setTimeout(() => {
+      searchInputRef.current?.focus();
+      searchInputRef.current?.select();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 50);
   };
+
 
   // Scroll to add memory zone
   const handleAddMemoryClick = () => {
@@ -196,25 +228,36 @@ export default function Home() {
   };
 
   return (
-    <div className="bg-surface text-on-surface antialiased min-h-screen flex flex-col font-body-md text-body-md selection:bg-surface-variant">
+    <div
+      ref={pageContainerRef}
+      className="bg-surface text-on-surface antialiased min-h-screen flex flex-col font-body-md text-body-md selection:bg-surface-variant relative overflow-x-hidden"
+    >
       {/* Top Header */}
       <Header
         currentTab={currentTab}
         onTabChange={setCurrentTab}
         onAddMemoryClick={handleAddMemoryClick}
         onSearchFocus={handleFocusSearch}
-        onScanDrivesClick={() => setIsDriveScannerModalOpen(true)}
+        onSelectFolderClick={() => setIsFolderModalOpen(true)}
         vaultName={vaultName}
         onVaultClick={() => setIsPreferencesModalOpen(true)}
       />
 
-      {/* Main Canvas */}
-      <main className="flex-grow w-full max-w-4xl mx-auto px-gutter py-space-xl">
+      {/* Main Canvas with GSAP tab morphing */}
+      <main ref={mainContentRef} className="flex-grow w-full max-w-4xl mx-auto px-gutter py-space-xl will-change-transform">
         {currentTab === 'timeline' ? (
           <TimelineView
             memories={memories}
             dates={dates}
             onSelectMemory={setSelectedMemory}
+          />
+        ) : currentTab === 'dont_forget' ? (
+          <DontForgetView
+            dates={dates}
+            memories={memories}
+            onDateClick={handleDateClick}
+            onSelectMemory={setSelectedMemory}
+            onUploadSuccess={handleUploadSuccess}
           />
         ) : (
           <>
@@ -239,17 +282,15 @@ export default function Home() {
             {/* Section: To Remember Soon */}
             <RememberSoon dates={dates} onDateClick={handleDateClick} />
 
-            {/* Section: Recently Added (hidden in 'dont_forget' view) */}
-            {currentTab !== 'dont_forget' && (
-              <RecentMemories
-                memories={memories}
-                onViewSource={setSelectedMemory}
-                onTagClick={handleTagClick}
-                onSelectMemory={setSelectedMemory}
-                onViewAllClick={() => setCurrentTab('timeline')}
-                totalCount={memories.length}
-              />
-            )}
+            {/* Section: Recently Added */}
+            <RecentMemories
+              memories={memories}
+              onViewSource={setSelectedMemory}
+              onTagClick={handleTagClick}
+              onSelectMemory={setSelectedMemory}
+              onViewAllClick={() => setCurrentTab('timeline')}
+              totalCount={memories.length}
+            />
 
             {/* Section: Drop Something You Don't Want to Forget */}
             <UploadZone
@@ -293,9 +334,9 @@ export default function Home() {
         onVaultNameChange={setVaultName}
       />
 
-      <DriveScannerModal
-        isOpen={isDriveScannerModalOpen}
-        onClose={() => setIsDriveScannerModalOpen(false)}
+      <FolderSelectorModal
+        isOpen={isFolderModalOpen}
+        onClose={() => setIsFolderModalOpen(false)}
         onScanComplete={refreshVault}
       />
     </div>

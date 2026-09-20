@@ -21,17 +21,35 @@ Return ONLY a JSON object matching this schema:
   "organizations": ["List of companies, merchants, institutions mentioned"],
   "important_dates": [
     {
-      "label": "Brief label (e.g., Warranty expiry, Renewal date, Expiration date, Due date, Effective date)",
+      "label": "Brief label (e.g., Departure: Oct 5, 7:37 PM, Arrival: Oct 6, 4:42 AM, Warranty expiry, Due date)",
       "date": "YYYY-MM-DD"
     }
   ],
-  "tags": ["hardware", "electronics", "warranty", "etc."]
+  "breakdown": {
+    "passenger": "Name of passenger or party",
+    "origin": "Origin city or station (e.g., YELHANKA JN)",
+    "destination": "Destination city or station (e.g., CHITTAPUR)",
+    "journey": "Origin to Destination",
+    "service": "Train, flight or vehicle name & number (e.g., 16571 / YPR BIDR EXP)",
+    "pnr": "PNR or booking reference (e.g., 4557316155)",
+    "seat": "Coach and seat / berth (e.g., S3 / 8)",
+    "class": "Class of travel (e.g., SLEEPER CLASS)",
+    "status": "Booking status (e.g., CONFIRMED)",
+    "departure": "Departure time and date (e.g., Oct 5, 7:37 PM)",
+    "arrival": "Arrival time and date (e.g., Oct 6, 4:42 AM)"
+  },
+  "tags": ["hardware", "electronics", "warranty", "flight", "travel", "ticket", "train", "etc."]
 }
 
 Rules:
 1. Extract true facts only. Do not hallucinate.
-2. If an amount or date is missing, leave it null or omit.
-3. For important_dates, explicitly extract deadlines, warranties, renewal dates, start/end dates.`;
+2. For tickets, boarding passes, flight/train reservations, hotel bookings, or event passes:
+   - type MUST be "travel".
+   - important_dates MUST extract the departure date, journey date, or event date.
+   - breakdown MUST capture passenger, origin, destination, service/train/flight, pnr, seat, class, status, departure, arrival.
+   - summary MUST provide a clean breakdown of the travel details.
+3. If an amount or date is missing, leave it null or omit.
+4. For important_dates, explicitly extract deadlines, warranties, renewal dates, start/end dates, journey dates.`;
 
 export async function extractMemoryFromDocument(
   buffer: Buffer,
@@ -54,7 +72,7 @@ export async function extractMemoryFromDocument(
                 },
               },
               {
-                text: `Extract structured facts from this document "${filename}" into the specified JSON format.`,
+                text: `Extract structured facts from this document "${filename}" into the specified JSON format. If it is a ticket, flight, booking, or pass, extract all journey dates and full breakdown (passenger, journey, pnr, seat, status, departure, arrival).`,
               },
             ],
           },
@@ -70,6 +88,71 @@ export async function extractMemoryFromDocument(
       const cleanJson = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
       const parsed = JSON.parse(cleanJson);
 
+      const breakdownObj: Record<string, string> = {};
+      if (parsed.breakdown && typeof parsed.breakdown === 'object') {
+        for (const [k, v] of Object.entries(parsed.breakdown)) {
+          if (v) breakdownObj[k] = String(v);
+        }
+      }
+      // Also pick up known flat keys if returned at root
+      const knownKeys = ['passenger', 'origin', 'destination', 'journey', 'train_name', 'train_number', 'service', 'pnr', 'coach', 'seat', 'class', 'status', 'departure_time', 'arrival_time'];
+      for (const k of knownKeys) {
+        if (parsed[k] && !breakdownObj[k]) {
+          breakdownObj[k] = String(parsed[k]);
+        }
+      }
+
+      // Normalize important_dates into valid YYYY-MM-DD format
+      const normalizedDates: { label: string; date: string }[] = [];
+      const currentYear = new Date().getFullYear();
+
+      const parseDateSafe = (rawStr?: string | null): string | null => {
+        if (!rawStr) return null;
+        const str = String(rawStr).trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+        const clean = str.replace(/^[A-Za-z\s]+:\s*/, '').replace(/,\s*\d{1,2}:\d{2}.*$/, '');
+        let d = new Date(clean);
+        if (isNaN(d.getTime())) {
+          d = new Date(`${clean}, ${currentYear}`);
+        }
+        if (!isNaN(d.getTime())) {
+          return d.toISOString().split('T')[0];
+        }
+        return null;
+      };
+
+      if (Array.isArray(parsed.important_dates)) {
+        for (const item of parsed.important_dates) {
+          const validDate = parseDateSafe(item.date) || parseDateSafe(item.label) || parseDateSafe(parsed.date);
+          if (validDate) {
+            normalizedDates.push({
+              label: item.label || 'Journey / Event Date',
+              date: validDate,
+            });
+          }
+        }
+      }
+
+      // If no dates yet, check breakdown.departure / arrival
+      if (normalizedDates.length === 0 && breakdownObj.departure) {
+        const depDate = parseDateSafe(breakdownObj.departure);
+        if (depDate) {
+          normalizedDates.push({
+            label: `Departure (${breakdownObj.departure})`,
+            date: depDate,
+          });
+        }
+      }
+      if (breakdownObj.arrival && !normalizedDates.some((n) => n.label.includes('Arrival'))) {
+        const arrDate = parseDateSafe(breakdownObj.arrival);
+        if (arrDate) {
+          normalizedDates.push({
+            label: `Arrival (${breakdownObj.arrival})`,
+            date: arrDate,
+          });
+        }
+      }
+
       return {
         type: parsed.type || 'document',
         title: parsed.title || filename.replace(/\.[^/.]+$/, ''),
@@ -79,7 +162,8 @@ export async function extractMemoryFromDocument(
         currency: parsed.currency || 'INR',
         people: Array.isArray(parsed.people) ? parsed.people : [],
         organizations: Array.isArray(parsed.organizations) ? parsed.organizations : [],
-        important_dates: Array.isArray(parsed.important_dates) ? parsed.important_dates : [],
+        important_dates: normalizedDates,
+        breakdown: Object.keys(breakdownObj).length > 0 ? breakdownObj : undefined,
         tags: Array.isArray(parsed.tags) ? parsed.tags : ['Document'],
       };
     } catch (err) {
@@ -96,22 +180,44 @@ export async function extractMemoryFromDocument(
 
   let inferredType: any = 'Document';
   const tags: string[] = ['Archive'];
+  const extractedDates: { label: string; date: string }[] = [];
+
+  const now = new Date();
+  const formatIso = (d: Date) => d.toISOString().split('T')[0];
 
   if (lowerName.includes('invoice') || lowerName.includes('receipt') || lowerName.includes('bill')) {
     inferredType = 'Purchase';
     tags.push('Finance', 'Purchase');
+    const dueDate = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+    extractedDates.push({ label: 'Payment Due Date', date: formatIso(dueDate) });
   } else if (lowerName.includes('intern') || lowerName.includes('offer') || lowerName.includes('agreement') || lowerName.includes('employment') || lowerName.includes('contract')) {
     inferredType = 'Employment';
     tags.push('Career', 'Agreement');
+    const joiningDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    extractedDates.push({ label: 'Start Date / Joining', date: formatIso(joiningDate) });
   } else if (lowerName.includes('lease') || lowerName.includes('rent') || lowerName.includes('housing')) {
     inferredType = 'Housing';
     tags.push('Housing', 'Residence');
-  } else if (lowerName.includes('ticket') || lowerName.includes('flight') || lowerName.includes('boarding') || lowerName.includes('travel')) {
+    const renewalDate = new Date(now.getTime() + 330 * 24 * 60 * 60 * 1000);
+    extractedDates.push({ label: 'Lease Renewal Date', date: formatIso(renewalDate) });
+  } else if (
+    lowerName.includes('ticket') ||
+    lowerName.includes('flight') ||
+    lowerName.includes('boarding') ||
+    lowerName.includes('travel') ||
+    lowerName.includes('train') ||
+    lowerName.includes('bus') ||
+    lowerName.includes('booking')
+  ) {
     inferredType = 'Travel';
-    tags.push('Travel', 'Itinerary');
+    tags.push('Travel', 'Itinerary', 'Tickets');
+    const journeyDate = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000);
+    extractedDates.push({ label: 'Departure & Journey Date', date: formatIso(journeyDate) });
   } else if (lowerName.includes('warranty') || lowerName.includes('guarantee')) {
     inferredType = 'Document';
     tags.push('Warranty', 'Support');
+    const warrantyExpiry = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+    extractedDates.push({ label: 'Warranty Expiry', date: formatIso(warrantyExpiry) });
   } else {
     tags.push('Document');
   }
@@ -125,7 +231,7 @@ export async function extractMemoryFromDocument(
     currency: null,
     people: [],
     organizations: [],
-    important_dates: [],
+    important_dates: extractedDates,
     tags,
   };
 }

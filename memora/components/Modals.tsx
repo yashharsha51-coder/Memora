@@ -1,7 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useRef } from 'react';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
 import { CloseIcon } from './Icons';
+
+gsap.registerPlugin(useGSAP);
 
 interface ModalWrapperProps {
   title: string;
@@ -15,51 +19,74 @@ const ModalWrapper: React.FC<ModalWrapperProps> = ({
   subtitle,
   onClose,
   children,
-}) => (
-  <div
-    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-on-surface/20 backdrop-blur-xs animate-fadeIn"
-    onClick={onClose}
-  >
+}) => {
+  const backdropRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useGSAP(() => {
+    gsap.from(backdropRef.current, {
+      opacity: 0,
+      duration: 0.25,
+      ease: 'power2.out',
+    });
+    gsap.from(dialogRef.current, {
+      scale: 0.95,
+      y: 16,
+      opacity: 0,
+      duration: 0.35,
+      ease: 'back.out(1.4)',
+    });
+  });
+
+  return (
     <div
-      className="w-full max-w-lg bg-surface-container-lowest border border-outline-variant rounded p-space-lg shadow-sm"
-      onClick={(e) => e.stopPropagation()}
+      ref={backdropRef}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-on-surface/20 backdrop-blur-xs will-change-transform"
+      onClick={onClose}
     >
-      <div className="flex items-center justify-between border-b border-outline-variant pb-space-sm mb-space-md">
-        <div className="flex items-baseline space-x-2">
-          <span className="font-headline-sm text-headline-sm text-on-surface">
-            {title}
-          </span>
-          {subtitle && (
-            <span className="text-secondary font-label-sm text-label-sm">
-              {subtitle}
+      <div
+        ref={dialogRef}
+        className="w-full max-w-lg bg-surface-container-lowest border border-outline-variant rounded p-space-lg shadow-lg will-change-transform"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-outline-variant pb-space-sm mb-space-md">
+          <div className="flex items-baseline space-x-2">
+            <span className="font-headline-sm text-headline-sm text-on-surface">
+              {title}
             </span>
-          )}
+            {subtitle && (
+              <span className="text-secondary font-label-sm text-label-sm">
+                {subtitle}
+              </span>
+            )}
+          </div>
+          <button
+            onClick={onClose}
+            className="text-secondary hover:text-on-surface p-1 rounded-md hover:bg-surface-container transition-colors cursor-pointer"
+            type="button"
+          >
+            <CloseIcon className="w-5 h-5" />
+          </button>
         </div>
-        <button
-          onClick={onClose}
-          className="text-secondary hover:text-on-surface p-1 cursor-pointer"
-          type="button"
-        >
-          <CloseIcon className="w-5 h-5" />
-        </button>
-      </div>
 
-      <div className="font-body-md text-body-md text-on-surface space-y-4">
-        {children}
-      </div>
+        <div className="font-body-md text-body-md text-on-surface space-y-4">
+          {children}
+        </div>
 
-      <div className="mt-space-lg pt-space-sm border-t border-outline-variant flex justify-end">
-        <button
-          onClick={onClose}
-          className="bg-primary text-surface px-4 py-1.5 rounded-lg font-label-md text-label-md hover:bg-primary-container transition-colors duration-150 cursor-pointer"
-          type="button"
-        >
-          Close
-        </button>
+        <div className="mt-space-lg pt-space-sm border-t border-outline-variant flex justify-end">
+          <button
+            onClick={onClose}
+            className="bg-primary text-surface px-4 py-1.5 rounded-lg font-label-md text-label-md hover:bg-primary-container transition-colors duration-150 cursor-pointer shadow-xs active:scale-95"
+            type="button"
+          >
+            Close
+          </button>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
+
 
 export const VaultModal: React.FC<{
   isOpen: boolean;
@@ -159,7 +186,7 @@ export const PreferencesModal: React.FC<{
   );
 };
 
-export const DriveScannerModal: React.FC<{
+export const FolderSelectorModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
   onScanComplete?: () => void;
@@ -172,6 +199,8 @@ export const DriveScannerModal: React.FC<{
     totalDiscovered?: number;
     newlyIndexedCount?: number;
   } | null>(null);
+  const filePickerRef = React.useRef<HTMLInputElement>(null);
+  const [deviceSyncStatus, setDeviceSyncStatus] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (isOpen) {
@@ -226,11 +255,8 @@ export const DriveScannerModal: React.FC<{
     }
   };
 
-  const filePickerRef = React.useRef<HTMLInputElement>(null);
-  const [deviceSyncStatus, setDeviceSyncStatus] = React.useState<string | null>(null);
-
   const handleConnectDeviceFolder = async () => {
-    setDeviceSyncStatus('Connecting to device folder...');
+    setDeviceSyncStatus('Selecting folder...');
     // 1. Modern File System Access API
     if ('showDirectoryPicker' in window) {
       try {
@@ -247,7 +273,7 @@ export const DriveScannerModal: React.FC<{
               }
             } else if (entry.kind === 'directory') {
               const nameLower = entry.name.toLowerCase();
-              if (!['node_modules', '.git', '.next', 'appdata'].includes(nameLower)) {
+              if (!['node_modules', '.git', '.next', 'appdata', '.gemini'].includes(nameLower)) {
                 await readDir(entry);
               }
             }
@@ -258,11 +284,11 @@ export const DriveScannerModal: React.FC<{
 
         if (collectedFiles.length === 0) {
           setDeviceSyncStatus('No supported documents found in selected folder.');
-          setTimeout(() => setDeviceSyncStatus(null), 3000);
+          setTimeout(() => setDeviceSyncStatus(null), 3500);
           return;
         }
 
-        setDeviceSyncStatus(`Indexing ${collectedFiles.length} documents into vault...`);
+        setDeviceSyncStatus(`Indexing ${collectedFiles.length} documents from selected folder...`);
         let indexedCount = 0;
 
         for (const file of collectedFiles) {
@@ -277,7 +303,7 @@ export const DriveScannerModal: React.FC<{
           } catch {}
         }
 
-        setDeviceSyncStatus(`✅ Successfully indexed ${indexedCount} documents from folder into your vault!`);
+        setDeviceSyncStatus(`✅ Successfully indexed ${indexedCount} documents into your vault!`);
         onScanComplete?.();
         setTimeout(() => setDeviceSyncStatus(null), 5000);
         return;
@@ -317,7 +343,7 @@ export const DriveScannerModal: React.FC<{
   };
 
   return (
-    <ModalWrapper title="File & Drive Manager" subtitle="Intelligent Lost File Retrieval" onClose={onClose}>
+    <ModalWrapper title="Folder Selector" subtitle="Add Folders to Memora Vault" onClose={onClose}>
       <div className="space-y-4">
         <input
           ref={filePickerRef}
@@ -331,81 +357,85 @@ export const DriveScannerModal: React.FC<{
         />
 
         <p className="text-secondary font-body-sm text-body-sm">
-          Connect your folders or local drives so Gemini AI can track all your files. When you lose track of an offer letter, bill, or ticket, ask Memora and it will locate it immediately.
+          Select folders from your system to index your documents and photos. When you need to find an invoice, ticket, certificate, or image, Memora searches and opens it directly.
         </p>
 
-        {/* Primary Action for Web & Cloud: Connect Device Folder */}
-        <div className="p-3 bg-surface-container-low border border-outline-variant rounded space-y-2">
+        {/* Primary Action: Pick a folder from device */}
+        <div className="p-4 bg-surface-container-low border border-outline-variant rounded-lg space-y-3">
           <div className="flex items-center justify-between">
             <span className="font-label-sm font-medium text-on-surface uppercase tracking-wide">
-              Connect Folder from this Device
+              Select Folder from your System
             </span>
-            <span className="text-xs bg-surface-container border border-outline-variant px-1.5 py-0.5 rounded text-secondary font-mono">
-              Zero-Upload
+            <span className="text-xs bg-surface-container border border-outline-variant px-2 py-0.5 rounded text-secondary font-mono">
+              Cross-Platform
             </span>
           </div>
           <p className="text-secondary font-body-sm text-xs">
-            Select your Documents, Downloads, or any folder from your computer or phone. All documents will be indexed for instant natural language retrieval.
+            Choose any folder (Documents, Downloads, Projects, etc.). Files remain secure on your machine.
           </p>
           <button
             type="button"
             onClick={handleConnectDeviceFolder}
-            className="w-full py-2 px-3 bg-surface-container border border-outline-variant rounded font-label-sm font-medium text-on-surface hover:bg-surface-container-high transition-colors flex items-center justify-center space-x-2 cursor-pointer"
+            className="w-full py-2.5 px-4 bg-on-surface text-surface rounded-lg font-label-md font-medium hover:opacity-90 transition-opacity flex items-center justify-center space-x-2 cursor-pointer shadow-xs active:scale-98"
           >
-            <span>📁 Select Folder to Index</span>
+            <span>📁 Choose Folder to Index</span>
           </button>
           {deviceSyncStatus && (
-            <p className="text-xs font-mono text-on-surface pt-1">{deviceSyncStatus}</p>
+            <p className="text-xs font-mono text-on-surface pt-1 text-center">{deviceSyncStatus}</p>
           )}
         </div>
 
-        {/* Local Drive Paths for Host Machine */}
+        {/* Custom Folder Path input */}
         <div>
           <label className="font-label-sm text-label-sm text-secondary uppercase tracking-wide block mb-1.5">
-            Monitored Drive Paths (Host System)
+            Or Add Custom Folder Path
           </label>
-          <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-            {folders.length === 0 ? (
-              <p className="text-secondary font-body-sm italic">No paths configured.</p>
-            ) : (
-              folders.map((f) => (
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newPath}
+              onChange={(e) => setNewPath(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAddFolder()}
+              placeholder="e.g. /home/user/documents or C:\Users\..."
+              className="flex-1 bg-surface-container-lowest border border-outline-variant text-on-surface rounded px-3 py-1.5 font-mono text-xs focus:outline-none focus:border-on-surface"
+            />
+            <button
+              type="button"
+              onClick={handleAddFolder}
+              className="px-3 py-1.5 bg-surface-container border border-outline-variant rounded text-on-surface font-label-sm hover:bg-surface-container-high transition-colors cursor-pointer"
+            >
+              Add Folder
+            </button>
+          </div>
+        </div>
+
+        {/* Configured Folders */}
+        {folders.length > 0 && (
+          <div>
+            <label className="font-label-sm text-label-sm text-secondary uppercase tracking-wide block mb-1.5">
+              Configured Folders ({folders.length})
+            </label>
+            <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+              {folders.map((f) => (
                 <div
                   key={f}
-                  className="flex items-center justify-between p-1.5 bg-surface-container-low border border-outline-variant rounded font-mono text-xs"
+                  className="flex items-center justify-between p-2 bg-surface-container-low border border-outline-variant rounded font-mono text-xs"
                 >
                   <span className="truncate mr-2 text-on-surface" title={f}>
-                    ⚡ {f}
+                    📁 {f}
                   </span>
                   <button
                     type="button"
                     onClick={() => handleRemoveFolder(f)}
-                    className="text-secondary hover:text-on-surface text-xs px-1 rounded cursor-pointer"
+                    className="text-secondary hover:text-on-surface text-xs px-1.5 py-0.5 rounded cursor-pointer"
                   >
                     ✕
                   </button>
                 </div>
-              ))
-            )}
+              ))}
+            </div>
           </div>
-        </div>
-
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={newPath}
-            onChange={(e) => setNewPath(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleAddFolder()}
-            placeholder="e.g. D:\Documents or C:\Users\..."
-            className="flex-1 bg-surface-container-lowest border border-outline-variant text-on-surface rounded px-3 py-1.5 font-mono text-xs focus:outline-none focus:border-on-surface"
-          />
-          <button
-            type="button"
-            onClick={handleAddFolder}
-            className="px-3 py-1.5 bg-surface-container border border-outline-variant rounded text-on-surface font-label-sm hover:bg-surface-container-high transition-colors cursor-pointer"
-          >
-            Add Path
-          </button>
-        </div>
+        )}
 
         {scanResult && (
           <div className="p-2.5 bg-surface-container border border-outline-variant rounded font-body-sm text-xs">
@@ -413,28 +443,33 @@ export const DriveScannerModal: React.FC<{
               <p className="text-error">{scanResult.message}</p>
             ) : (
               <p className="text-on-surface">
-                ✅ Host Scan: Discovered <strong>{scanResult.totalDiscovered}</strong> files. Indexed <strong>{scanResult.newlyIndexedCount}</strong> new records into vault.
+                ✅ Discovered <strong>{scanResult.totalDiscovered}</strong> files. Indexed <strong>{scanResult.newlyIndexedCount}</strong> new records into vault.
               </p>
             )}
           </div>
         )}
 
-        <div>
-          <button
-            type="button"
-            disabled={isScanning || folders.length === 0}
-            onClick={handleRunScan}
-            className="w-full py-2 px-4 bg-on-surface text-surface rounded font-label-md font-medium hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center space-x-2 cursor-pointer"
-          >
-            {isScanning ? (
-              <span>⚡ Scanning Host Drives...</span>
-            ) : (
-              <span>⚡ Scan Host Drives Now</span>
-            )}
-          </button>
-        </div>
+        {folders.length > 0 && (
+          <div>
+            <button
+              type="button"
+              disabled={isScanning}
+              onClick={handleRunScan}
+              className="w-full py-2 px-4 bg-surface-container border border-outline-variant hover:bg-surface-container-high text-on-surface rounded font-label-md font-medium disabled:opacity-50 transition-colors flex items-center justify-center space-x-2 cursor-pointer"
+            >
+              {isScanning ? (
+                <span>Indexing Configured Folders...</span>
+              ) : (
+                <span>Index Configured Folders</span>
+              )}
+            </button>
+          </div>
+        )}
       </div>
     </ModalWrapper>
   );
 };
+
+export const DriveScannerModal = FolderSelectorModal;
+
 

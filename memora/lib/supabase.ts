@@ -163,6 +163,7 @@ export async function insertMemoryRecord(params: {
   important_dates?: { label: string; date: string }[];
   tags?: string[];
   entities?: { entity_type: string; entity_value: string }[];
+  breakdown?: Record<string, string>;
 }): Promise<Memory> {
   const memoryId = 'mem_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
   const now = new Date().toISOString();
@@ -179,6 +180,8 @@ export async function insertMemoryRecord(params: {
           amount: params.amount,
           currency: params.currency,
           source_file_id: params.source_file_id,
+          absolute_path: params.absolute_path,
+          directory: params.directory,
           created_at: now,
         })
         .select()
@@ -238,6 +241,7 @@ export async function insertMemoryRecord(params: {
     directory: params.directory,
     created_at: now,
     tags: params.tags || [],
+    breakdown: params.breakdown,
   };
 
   local.memories.unshift(createdMemory);

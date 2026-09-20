@@ -97,3 +97,19 @@ export const DownloadIcon: React.FC<IconProps> = ({ className = 'w-3.5 h-3.5' })
     <line x1="12" y1="15" x2="12" y2="3" />
   </svg>
 );
+
+export const SearchIcon: React.FC<IconProps> = ({ className = 'w-4 h-4' }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="11" cy="11" r="8" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </svg>
+);
+

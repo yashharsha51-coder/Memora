@@ -1,8 +1,12 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
 import { Memory, UploadStep } from '@/types/memory';
 import { FolderOpenIcon } from './Icons';
+
+gsap.registerPlugin(useGSAP);
 
 interface UploadZoneProps {
   onUploadSuccess: (memory: Memory) => void;
@@ -15,10 +19,37 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
+  const statusBadgeRef = useRef<HTMLSpanElement>(null);
   const [step, setStep] = useState<UploadStep>('idle');
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+
+  // Smooth spring bounce on drag over
+  useEffect(() => {
+    if (dropZoneRef.current) {
+      gsap.to(dropZoneRef.current, {
+        scale: isDragOver ? 1.015 : 1,
+        borderColor: isDragOver ? 'var(--color-primary, #000000)' : 'var(--color-outline-variant, #c6c7c0)',
+        backgroundColor: isDragOver ? '#ffffff' : '#f9f9f8',
+        duration: 0.3,
+        ease: isDragOver ? 'back.out(1.5)' : 'power2.out',
+      });
+    }
+  }, [isDragOver]);
+
+  // Status transition animation
+  useEffect(() => {
+    if (statusBadgeRef.current) {
+      gsap.fromTo(
+        statusBadgeRef.current,
+        { scale: 0.94, opacity: 0.7 },
+        { scale: 1, opacity: 1, duration: 0.25, ease: 'power2.out' }
+      );
+    }
+  }, [step, statusMessage]);
+
 
   const handleContainerClick = () => {
     if (step === 'idle' || step === 'saved' || step === 'error') {
@@ -300,13 +331,12 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
       />
 
       <div
+        ref={dropZoneRef}
         onClick={handleContainerClick}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`border border-dashed border-outline-variant rounded p-space-xl bg-surface hover:bg-surface-container-lowest transition-colors duration-200 text-center cursor-pointer ${
-          isDragOver ? 'bg-surface-container-lowest border-primary' : ''
-        }`}
+        className="border border-dashed border-outline-variant rounded p-space-xl bg-surface hover:bg-surface-container-lowest transition-colors duration-200 text-center cursor-pointer will-change-transform"
       >
         <div className="max-w-md mx-auto space-y-2">
           <p className="font-headline-md text-headline-md text-on-surface">
@@ -327,18 +357,23 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
             </button>
             {' '}to index your archive.
           </p>
-          <div className="pt-3">
-            <span className="inline-flex items-center space-x-1.5 font-label-sm text-label-sm text-secondary bg-surface-container border border-outline-variant px-2.5 py-1 rounded">
-              <span
-                className={`w-1.5 h-1.5 rounded-full ${
-                  status.pulse ? 'bg-on-surface animate-ping' : 'bg-outline'
-                }`}
-              ></span>
-              <span>{status.label}</span>
-            </span>
-          </div>
+        {/* Status badge with GSAP transition */}
+        <div className="pt-3">
+          <span
+            ref={statusBadgeRef}
+            className="inline-flex items-center space-x-1.5 font-label-sm text-label-sm text-secondary bg-surface-container border border-outline-variant px-2.5 py-1 rounded shadow-2xs will-change-transform"
+          >
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${
+                status.pulse ? 'bg-primary animate-ping' : 'bg-outline'
+              }`}
+            ></span>
+            <span>{status.label}</span>
+          </span>
         </div>
       </div>
-    </section>
-  );
+    </div>
+  </section>
+);
 };
+

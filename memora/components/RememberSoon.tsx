@@ -1,8 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { useRef } from 'react';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
 import { ImportantDate } from '@/types/memory';
 import { ArrowForwardIcon } from './Icons';
+
+gsap.registerPlugin(useGSAP);
 
 interface RememberSoonProps {
   dates: ImportantDate[];
@@ -13,8 +17,25 @@ export const RememberSoon: React.FC<RememberSoonProps> = ({
   dates,
   onDateClick,
 }) => {
+  const containerRef = useRef<HTMLElement>(null);
+
+  useGSAP(
+    () => {
+      if (dates.length > 0) {
+        gsap.from('.date-row-item', {
+          y: 12,
+          opacity: 0,
+          stagger: 0.05,
+          duration: 0.45,
+          ease: 'power2.out',
+        });
+      }
+    },
+    { dependencies: [dates.length], scope: containerRef }
+  );
+
   return (
-    <section className="mb-space-xl">
+    <section ref={containerRef} className="mb-space-xl will-change-transform">
       <div className="flex items-baseline justify-between border-b border-outline-variant pb-space-xs mb-space-md">
         <h2 className="font-headline-sm text-headline-sm text-on-surface">To remember soon</h2>
         <span className="font-label-sm text-label-sm text-secondary uppercase tracking-widest">
@@ -32,10 +53,10 @@ export const RememberSoon: React.FC<RememberSoonProps> = ({
             <div
               key={item.id}
               onClick={() => onDateClick?.(item)}
-              className="py-space-md flex items-center justify-between hover:bg-surface-container-low px-2 -mx-2 transition-colors duration-150 cursor-pointer"
+              className="date-row-item py-space-md flex items-center justify-between hover:bg-surface-container-low px-2 -mx-2 rounded-md transition-colors duration-150 cursor-pointer group will-change-transform"
             >
               <div className="flex items-baseline space-x-6 min-w-0">
-                <span className="font-body-md text-body-md font-medium text-on-surface truncate">
+                <span className="font-body-md text-body-md font-medium text-on-surface truncate group-hover:translate-x-0.5 transition-transform duration-150">
                   {item.label}
                 </span>
                 {item.sourceContext && (
@@ -45,10 +66,10 @@ export const RememberSoon: React.FC<RememberSoonProps> = ({
                 )}
               </div>
               <div className="flex items-center space-x-4 flex-shrink-0">
-                <span className="font-label-sm text-label-sm bg-surface-container border border-outline-variant px-2 py-0.5 rounded text-on-surface">
+                <span className="font-label-sm text-label-sm bg-surface-container border border-outline-variant px-2.5 py-0.5 rounded text-on-surface group-hover:border-outline transition-colors">
                   {item.relativeFormatted || 'Upcoming'}
                 </span>
-                <span className="text-secondary">
+                <span className="text-secondary group-hover:translate-x-1 group-hover:text-on-surface transition-all duration-150">
                   <ArrowForwardIcon className="w-4 h-4" />
                 </span>
               </div>
@@ -59,3 +80,4 @@ export const RememberSoon: React.FC<RememberSoonProps> = ({
     </section>
   );
 };
+

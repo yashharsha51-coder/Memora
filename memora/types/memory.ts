@@ -49,6 +49,7 @@ export interface Memory {
   important_dates?: ImportantDate[];
   tags?: string[];
   entities?: MemoryEntity[];
+  breakdown?: Record<string, string>;
   created_at: string;
   updated_at?: string;
 }
@@ -66,6 +67,7 @@ export interface ExtractionResult {
     label: string;
     date: string;
   }[];
+  breakdown?: Record<string, string>;
   tags?: string[];
 }
 

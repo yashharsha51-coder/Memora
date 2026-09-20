@@ -4,54 +4,29 @@ import path from 'path';
 
 export const runtime = 'nodejs';
 
-function generateArchivePdf(title: string, summary: string, metadata: string = ''): Buffer {
-  const cleanTitle = title.replace(/[()\\\/]/g, ' ');
-  const cleanSummary = summary.replace(/[()\\\/]/g, ' ').substring(0, 180);
-  const cleanMeta = metadata.replace(/[()\\\/]/g, ' ');
-
-  const streamContent = `BT
-/F1 18 Tf
-50 720 Td
-(${cleanTitle}) Tj
-/F1 10 Tf
-0 -25 Td
-(MEMORA VERIFIED ARCHIVE RECORD) Tj
-/F1 12 Tf
-0 -35 Td
-(${cleanSummary}) Tj
-/F1 10 Tf
-0 -30 Td
-(${cleanMeta}) Tj
-/F1 9 Tf
-0 -40 Td
-(Document authenticity verified by MEMORA Local Vault Intelligence Engine.) Tj
-ET`;
-
-  const streamLength = Buffer.byteLength(streamContent);
-  const pdfString = `%PDF-1.4
-1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
-2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj
-3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj
-4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj
-5 0 obj << /Length ${streamLength} >>
-stream
-${streamContent}
-endstream
-endobj
-xref
-0 6
-0000000000 65535 f 
-0000000009 00000 n 
-0000000058 00000 n 
-0000000115 00000 n 
-0000000244 00000 n 
-0000000323 00000 n 
-trailer << /Size 6 /Root 1 0 R >>
-startxref
-${390 + streamLength}
-%%EOF`;
-
-  return Buffer.from(pdfString, 'utf-8');
+function getContentType(filePath: string): string {
+  const ext = path.extname(filePath).toLowerCase();
+  switch (ext) {
+    case '.jpg':
+    case '.jpeg':
+      return 'image/jpeg';
+    case '.png':
+      return 'image/png';
+    case '.webp':
+      return 'image/webp';
+    case '.gif':
+      return 'image/gif';
+    case '.svg':
+      return 'image/svg+xml';
+    case '.pdf':
+      return 'application/pdf';
+    case '.txt':
+      return 'text/plain';
+    case '.json':
+      return 'application/json';
+    default:
+      return 'application/octet-stream';
+  }
 }
 
 export async function GET(
@@ -62,75 +37,151 @@ export async function GET(
     const { filename } = await params;
     const decodedName = decodeURIComponent(filename);
     const safeFilename = path.basename(decodedName);
-    const uploadsDir = path.join(process.cwd(), '.data', 'uploads');
 
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-
-    // 1. Direct file match in .data/uploads
-    let directPath = path.join(uploadsDir, safeFilename);
-    if (fs.existsSync(directPath)) {
-      const fileBuffer = fs.readFileSync(directPath);
-      const ext = path.extname(safeFilename).toLowerCase();
-      let contentType = 'application/pdf';
-      if (ext === '.png') contentType = 'image/png';
-      else if (ext === '.jpg' || ext === '.jpeg') contentType = 'image/jpeg';
-      else if (ext === '.webp') contentType = 'image/webp';
-
+    // 1. Check if an explicit absolute disk path is passed via ?path= query param
+    const explicitPath = req.nextUrl.searchParams.get('path');
+    if (explicitPath && fs.existsSync(explicitPath)) {
+      const fileBuffer = fs.readFileSync(explicitPath);
+      const contentType = getContentType(explicitPath);
       return new NextResponse(new Uint8Array(fileBuffer), {
         status: 200,
         headers: {
           'Content-Type': contentType,
-          'Content-Disposition': `inline; filename="${safeFilename}"`,
+          'Content-Disposition': `inline; filename="${path.basename(explicitPath)}"`,
+          'Cache-Control': 'public, max-age=3600',
         },
       });
     }
 
-    // 2. Check if a prefixed uploaded file exists (e.g. 12345_Filename.pdf)
-    const filesInDir = fs.readdirSync(uploadsDir);
-    const matchedFile = filesInDir.find(
-      (f) =>
-        f.toLowerCase() === safeFilename.toLowerCase() ||
-        f.toLowerCase().endsWith(`_${safeFilename.toLowerCase()}`) ||
-        safeFilename.toLowerCase().includes(f.toLowerCase())
-    );
+    // 2. Check local runtime upload directory (.data/uploads)
+    const uploadsDir = path.join(process.cwd(), '.data', 'uploads');
+    if (fs.existsSync(uploadsDir)) {
+      const directUploadPath = path.join(uploadsDir, safeFilename);
+      if (fs.existsSync(directUploadPath)) {
+        const fileBuffer = fs.readFileSync(directUploadPath);
+        const contentType = getContentType(directUploadPath);
+        return new NextResponse(new Uint8Array(fileBuffer), {
+          status: 200,
+          headers: {
+            'Content-Type': contentType,
+            'Content-Disposition': `inline; filename="${safeFilename}"`,
+            'Cache-Control': 'public, max-age=3600',
+          },
+        });
+      }
 
-    if (matchedFile) {
-      const fileBuffer = fs.readFileSync(path.join(uploadsDir, matchedFile));
-      return new NextResponse(new Uint8Array(fileBuffer), {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/pdf',
-          'Content-Disposition': `inline; filename="${safeFilename}"`,
-        },
+      // Check prefixed and sanitized files (e.g. 178989_WhatsApp_Image_..._1_.jpeg)
+      const cleanTarget = safeFilename.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const filesInUploads = fs.readdirSync(uploadsDir);
+      const matchedUpload = filesInUploads.find((f) => {
+        const cleanFile = f.toLowerCase().replace(/[^a-z0-9]/g, '');
+        return (
+          f.toLowerCase() === safeFilename.toLowerCase() ||
+          cleanFile === cleanTarget ||
+          cleanFile.endsWith(cleanTarget) ||
+          (cleanTarget.length > 5 && cleanFile.includes(cleanTarget))
+        );
       });
+
+      if (matchedUpload) {
+        const fullUploadPath = path.join(uploadsDir, matchedUpload);
+        const fileBuffer = fs.readFileSync(fullUploadPath);
+        const contentType = getContentType(fullUploadPath);
+        return new NextResponse(new Uint8Array(fileBuffer), {
+          status: 200,
+          headers: {
+            'Content-Type': contentType,
+            'Content-Disposition': `inline; filename="${safeFilename}"`,
+            'Cache-Control': 'public, max-age=3600',
+          },
+        });
+      }
     }
 
-    // 3. Fallback: Generate real verified PDF preview for document
-    const cleanTitle = safeFilename
-      .replace(/\.[^/.]+$/, '')
-      .replace(/[_-]/g, ' ')
-      .replace(/\b\w/g, (l) => l.toUpperCase());
-    const title = cleanTitle;
-    const summary = `Archived record for ${safeFilename} preserved in your personal Memora memory vault.`;
-    const meta = 'Status: Verified Vault Archive · Integrity: 100%';
+    // 3. Look up in memora_store.json to locate actual disk absolute path
+    const storePath = path.join(process.cwd(), '.data', 'memora_store.json');
+    if (fs.existsSync(storePath)) {
+      try {
+        const storeData = JSON.parse(fs.readFileSync(storePath, 'utf-8'));
+        const allMemories = storeData.memories || [];
+        const allFiles = storeData.files || [];
+        const cleanTarget = safeFilename.toLowerCase().replace(/[^a-z0-9]/g, '');
 
-    const generatedPdf = generateArchivePdf(title, summary, meta);
+        // Check in files list
+        const matchedStoreFile = allFiles.find(
+          (f: any) =>
+            f.filename?.toLowerCase() === safeFilename.toLowerCase() ||
+            f.id === safeFilename ||
+            (f.filename && f.filename.toLowerCase().replace(/[^a-z0-9]/g, '').includes(cleanTarget)) ||
+            (f.storage_path && path.basename(f.storage_path).toLowerCase() === safeFilename.toLowerCase())
+        );
 
-    // Persist to uploads so subsequent hits read instantly from disk
-    fs.writeFileSync(directPath, generatedPdf);
+        if (matchedStoreFile) {
+          let targetDiskPath = matchedStoreFile.absolute_path;
+          if (!targetDiskPath || !fs.existsSync(/*turbopackIgnore: true*/ targetDiskPath)) {
+            if (matchedStoreFile.storage_path) {
+              const candidate = path.join(process.cwd(), '.data', matchedStoreFile.storage_path);
+              if (fs.existsSync(/*turbopackIgnore: true*/ candidate)) targetDiskPath = candidate;
+            }
+          }
 
-    return new NextResponse(new Uint8Array(generatedPdf), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `inline; filename="${safeFilename.endsWith('.pdf') ? safeFilename : safeFilename + '.pdf'}"`,
-      },
-    });
+          if (targetDiskPath && fs.existsSync(/*turbopackIgnore: true*/ targetDiskPath)) {
+            const fileBuffer = fs.readFileSync(/*turbopackIgnore: true*/ targetDiskPath);
+            const contentType = getContentType(targetDiskPath);
+            return new NextResponse(new Uint8Array(fileBuffer), {
+              status: 200,
+              headers: {
+                'Content-Type': contentType,
+                'Content-Disposition': `inline; filename="${path.basename(targetDiskPath)}"`,
+                'Cache-Control': 'public, max-age=3600',
+              },
+            });
+          }
+        }
+
+        // Check in memories list
+        const matchedMemory = allMemories.find(
+          (m: any) =>
+            m.source_file?.filename?.toLowerCase() === safeFilename.toLowerCase() ||
+            m.title?.toLowerCase() === safeFilename.toLowerCase() ||
+            (m.source_file?.filename && m.source_file.filename.toLowerCase().replace(/[^a-z0-9]/g, '').includes(cleanTarget)) ||
+            (m.absolute_path && path.basename(m.absolute_path).toLowerCase() === safeFilename.toLowerCase())
+        );
+
+        if (matchedMemory) {
+          let targetDiskPath =
+            matchedMemory.absolute_path ||
+            matchedMemory.source_file?.absolute_path ||
+            matchedMemory.source_file?.storage_path;
+
+          if (!targetDiskPath || !fs.existsSync(/*turbopackIgnore: true*/ targetDiskPath)) {
+            if (matchedMemory.source_file?.storage_path) {
+              const candidate = path.join(process.cwd(), '.data', matchedMemory.source_file.storage_path);
+              if (fs.existsSync(/*turbopackIgnore: true*/ candidate)) targetDiskPath = candidate;
+            }
+          }
+
+          if (targetDiskPath && fs.existsSync(/*turbopackIgnore: true*/ targetDiskPath)) {
+            const fileBuffer = fs.readFileSync(/*turbopackIgnore: true*/ targetDiskPath);
+            const contentType = getContentType(targetDiskPath);
+            return new NextResponse(new Uint8Array(fileBuffer), {
+              status: 200,
+              headers: {
+                'Content-Type': contentType,
+                'Content-Disposition': `inline; filename="${path.basename(targetDiskPath)}"`,
+                'Cache-Control': 'public, max-age=3600',
+              },
+            });
+          }
+        }
+      } catch (storeErr) {
+        console.error('Store lookup error:', storeErr);
+      }
+    }
+
+    return NextResponse.json({ error: 'File not found on local drives or vault' }, { status: 404 });
   } catch (err: any) {
     console.error('File retrieval error:', err);
     return NextResponse.json({ error: 'Failed to retrieve file' }, { status: 500 });
   }
 }
-

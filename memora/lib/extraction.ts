@@ -40,6 +40,11 @@ export async function processDocumentUpload(
       entitiesToSave.push({ entity_type: 'organization', entity_value: o });
     }
   }
+  if (extracted.breakdown) {
+    for (const [k, v] of Object.entries(extracted.breakdown)) {
+      if (v) entitiesToSave.push({ entity_type: k, entity_value: String(v) });
+    }
+  }
 
   const savedMemory = await insertMemoryRecord({
     title: extracted.title,
@@ -52,6 +57,7 @@ export async function processDocumentUpload(
     important_dates: extracted.important_dates,
     tags: extracted.tags,
     entities: entitiesToSave,
+    breakdown: extracted.breakdown,
   });
 
   return {
